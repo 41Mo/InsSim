@@ -82,18 +82,24 @@ crete_threads_and_run_1(
     acc_random_error_analysis,
     random_error_analysis
     )
+
 # %%
 plots(acc_offset_analysis)
+
 # %%
 plots(gyro_offset_analysis)
+
 # %%
 plots(acc_drift_analysis)
+
 # %%
 plots(gyro_drift_analysis)
+
 # %%
 plots(gyro_random_error_analysis)
+
 # %%
 plots(acc_random_error_analysis)
+
 #%%
 plots(random_error_analysis)
-# %%
