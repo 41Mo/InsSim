@@ -78,11 +78,11 @@ class nav_alg:
         C_0 = np.sqrt(pow(C[0,2],2) + pow(C[2,2],2))
 
         # teta
-        self.__euler_angles[0] = np.arctan2(C[1,2],C_0)
+        self.__euler_angles[0] = np.arctan(C[1,2]/C_0)
         # gamma
-        self.__euler_angles[1] = -np.arctan2(C[0,2],C[2,2])
+        self.__euler_angles[1] = -np.arctan(C[0,2]/C[2,2])
         # psi
-        self.__euler_angles[2] = np.arctan2(C[1,0],C[1,1])
+        self.__euler_angles[2] = np.arctan(C[1,0]/C[1,1])
 
     def _acc_body_enu(self):
         # transformation from horisontal vector to veritical vector
@@ -192,7 +192,11 @@ class nav_alg:
             self.calc_and_save()
         self.prepare_data()
 
-    def analysis(self):
+    
+    def analysis(self): 
+        """
+            run analysis
+        """
         if self.analysis_type == "static":
             self.static_analysis()
         
@@ -205,31 +209,39 @@ class nav_alg:
         if self.analysis_type == "dynamic_acc":
             self.dynamic_analysis_acc()
 
-# plot helper
-def plots(obj):
-        plt.figure()
+    def plots(self):
+        """
+        generate 3 plots 
+        - orientation angles
+        - speed
+        - coordinates
+        """
+        plt.figure(figsize=(17,9))
         plt.subplot(3 , 1, 1)
-        plt.plot(range(len(obj.pitch)), np.rad2deg(obj.pitch), label="roll")
+        plt.plot(range(len(self.pitch)), np.rad2deg(self.pitch), label="roll")
         plt.legend()
         plt.subplot(3 , 1, 2)
-        plt.plot(range(len(obj.roll)), np.rad2deg(obj.roll), label="pitch")
+        plt.plot(range(len(self.roll)), np.rad2deg(self.roll), label="pitch")
         plt.legend()
         plt.subplot(3 , 1, 3)
-        plt.plot(range(len(obj.yaw)), np.rad2deg(obj.yaw), label="yaw")
+        plt.plot(range(len(self.yaw)), np.rad2deg(self.yaw), label="yaw")
         plt.legend()
+        plt.show()
 
-        plt.figure()
+        plt.figure(figsize=(17,9))
         plt.subplot(2 , 1, 1)
-        plt.plot(range(len(obj.spd_e)), obj.spd_e, label="v_e")
+        plt.plot(range(len(self.spd_e)), self.spd_e, label="v_e")
         plt.legend()
         plt.subplot(2 , 1, 2)
-        plt.plot(range(len(obj.spd_n)), obj.spd_n, label="v_n")
+        plt.plot(range(len(self.spd_n)), self.spd_n, label="v_n")
         plt.legend()
+        plt.show()
 
-        plt.figure()
+        plt.figure(figsize=(17,9))
         plt.subplot(2 , 1, 1)
-        plt.plot(range(len(obj.lat)), np.rad2deg(obj.lat), label="lat")
+        plt.plot(range(len(self.lat)), np.rad2deg(self.lat), label="lat")
         plt.legend()
         plt.subplot(2 , 1, 2)
-        plt.plot(range(len(obj.lon)), np.rad2deg(obj.lon), label="lon")
+        plt.plot(range(len(self.lon)), np.rad2deg(self.lon), label="lon")
         plt.legend()
+        plt.show()
