@@ -11,7 +11,7 @@ class MainWindow(tmpl.MainFrame):
         self.nav_alg = na.nav_alg()
         self.is_input_invalid = False
 
-    def input_check_float(self, obj):
+    def input_check_lon(self, obj):
         
         result = re.search(r'[^0-9\.]',obj.GetValue(),flags=re.IGNORECASE)
         obj.SetBackgroundColour("white")
@@ -19,8 +19,45 @@ class MainWindow(tmpl.MainFrame):
         if result != None:
             obj.SetBackgroundColour("red")
             self.is_input_invalid = True
+            return
+        
+        empty = obj.GetValue()
+
+        if not empty:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+        
+        grad = float(obj.GetValue())
+
+        if grad > 180 or grad < (-180):
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
     
-    def input_check_int(self, obj):
+    def input_check_lat(self, obj):
+        
+        result = re.search(r'[^0-9\.]',obj.GetValue(),flags=re.IGNORECASE)
+        obj.SetBackgroundColour("white")
+
+        if result != None:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+
+        empty = obj.GetValue()
+
+        if not empty:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+
+        grad = float(obj.GetValue())
+
+        if grad > 90 or grad < (-90):
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+    
+    def input_check_time(self, obj):
         
         result = re.search(r'[^0-9]',obj.GetValue(),flags=re.IGNORECASE)
         obj.SetBackgroundColour("white")
@@ -28,21 +65,77 @@ class MainWindow(tmpl.MainFrame):
         if result != None:
             obj.SetBackgroundColour("red")
             self.is_input_invalid = True
+        
+        empty = obj.GetValue()
+
+        if not empty:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+    
+    def input_check_gyr(self, obj):
+        
+        result = re.search(r'[^0-9\.]',obj.GetValue(),flags=re.IGNORECASE)
+        obj.SetBackgroundColour("white")
+
+        if result != None:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+        
+        empty = obj.GetValue()
+
+        if not empty:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+
+        grads = float(obj.GetValue())
+
+        if grads > 1 or grads < -1:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+    
+    def input_check_acc(self, obj):
+        
+        result = re.search(r'[^0-9\.]',obj.GetValue(),flags=re.IGNORECASE)
+        obj.SetBackgroundColour("white")
+
+        if result != None:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+
+        empty = obj.GetValue()
+
+        if not empty:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+            return
+
+        
+        g = float(obj.GetValue())
+
+        if g > 1 or g < -1:
+            obj.SetBackgroundColour("red")
+            self.is_input_invalid = True
+
 
     def run_analysis(self, event):
         
-        self.input_check_int(self.m_enter_freq)
-        self.input_check_int(self.m_enter_points_num)
-        self.input_check_float(self.m_enter_lat)
-        self.input_check_float(self.m_enter_lon)
-        self.input_check_float(self.m_enter_gyr_offset)
-        self.input_check_float(self.m_enter_acc_offset)
-        self.input_check_float(self.m_enter_gyr_drift)
-        self.input_check_float(self.m_enter_acc_drift)
+        self.input_check_time(self.m_enter_freq)
+        self.input_check_time(self.m_enter_points_num)
+        self.input_check_lat(self.m_enter_lat)
+        self.input_check_lon(self.m_enter_lon)
+        self.input_check_gyr(self.m_enter_gyr_offset)
+        self.input_check_acc(self.m_enter_acc_offset)
+        self.input_check_gyr(self.m_enter_gyr_drift)
+        self.input_check_acc(self.m_enter_acc_drift)
 
         if self.is_input_invalid:
             wx.MessageBox("Введен некорректный символ")
             self.is_input_invalid = False
+            self.Refresh()
             return
         
 
