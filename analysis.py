@@ -1,10 +1,10 @@
 #%%
-from src.nav_alg import nav_alg
+from src.nav_alg import nav_alg,matrix_enu_to_body
 import numpy as np
 #%%
 # Moscow
-lat = 0#55.75
-lon = 0#37.61
+lat = 55.75
+lon = 37.61
 
 # file with real sensors data
 data_file = "csv_data/Sensors_and_orientation.csv"
@@ -16,17 +16,30 @@ acc_offset = 0.002/g # 2 [mg]
 acc_drift = 0.00001/g # 0.1 [mg]
 gyr_drift = np.deg2rad(10)/3600 # [deg/hour]
 
+#%%
+# alignemnt errors [deg]
+# 0 - assuming no errors
+psi = 0
+teta = 0
+gamma = 0
+# assuming we are standing steel
+a_enu = np.array([[0],[0],[g]])
+
+C_enu_body = matrix_enu_to_body(psi, teta, gamma)
+# re-project vect
+a_body = C_enu_body @ a_enu
+
 # %%
 gyro_offset_analysis = nav_alg()
 gyro_offset_analysis.set_w_body(gyr_offset, gyr_offset, gyr_offset)
 gyro_offset_analysis.set_coordinates(lat, lon)
 
-acc_offset_analysis = nav_alg()
-acc_offset_analysis.set_a_body(acc_offset, acc_offset, acc_offset+g)
+acc_offset_analysis = nav_alg(frequency=1, time=10800)
+acc_offset_analysis.set_a_body(a_body[0][0], a_body[1][0], a_body[2][0])
 acc_offset_analysis.set_coordinates(lat, lon)
 
 acc_drift_analysis = nav_alg()
-acc_drift_analysis.set_a_body(acc_drift, acc_drift, acc_drift)
+acc_drift_analysis.set_a_body(a_body[0][0], a_body[1][0], a_body[2][0])
 acc_drift_analysis.set_coordinates(lat, lon)
 
 gyro_drift_analysis= nav_alg()

@@ -6,8 +6,8 @@ from numpy import tan as tan
 class nav_alg:
 
     # Earth parameters
-    R_LAT = 6400000.0; # earth radius [m]
-    R_LON = 6400000.0; # earth radius [m]
+    R_LAT = 6378245.0; # earth radius [m]
+    R_LON = 6378245.0; # earth radius [m]
     U = np.deg2rad(15)/3600 # earth speed [rad/sec]
 
     def __init__(self, frequency=1, time=10800, analysis="static"):
@@ -42,6 +42,12 @@ class nav_alg:
         self.yaw = []
         self.lat = []
         self.lon = []
+        self.a_e = []
+        self.a_n = []
+        self.a_u = []
+        self.w_e = []
+        self.w_n = []
+        self.w_u = []
         
     def set_a_body(self, ax, ay, az):
         self._a_body=np.array([ax, ay, az]).reshape(3,1)
@@ -74,12 +80,12 @@ class nav_alg:
             [-woy,  wox,    0]
         ], dtype=np.double)
 
-        self._tm_body_enu = C + (C @ w_body  - w_enu @ C)*self.dt
+        self._tm_body_enu = C + (C @ w_body  - w_enu @ C) * self.dt
 
     def _euler_angles(self):
         C = self._tm_body_enu
 
-        C_0 = np.sqrt(pow(C[0,2],2) + pow(C[2,2],2))
+        C_0 = np.sqrt(pow(C[2,0],2) + pow(C[2,2],2))
 
         # teta
         self.__euler_angles[0] = np.arctan(C[1,2]/C_0)
@@ -114,13 +120,16 @@ class nav_alg:
         v = self._v_enu
         tmp = w[2,0]
         # v_e
-        self._v_enu[0] =  v[0] + (a[0] + (self.U*sin(coord[1])+w[2])*v[1] - v[2]*(self.U*cos(coord[1])+w[1]))*self.dt
+        #self._v_enu[0][0]
+        v1 =  v[0] + (a[0] + (self.U*sin(coord[1])+w[2])*v[1] - v[2]*(self.U*cos(coord[1])+w[1]))*self.dt
         # v_n
-        self._v_enu[1] =  v[1] + (a[1] - (self.U*sin(coord[1])+w[2])*v[0] - v[2] * w[0])*self.dt
-        # v_up unstable channel cant ve calculated, so assuming 0
-        self.v_enu[2] = 0
+        #self._v_enu[1][0]
+        v2 =  v[1] + (a[1] - (self.U*sin(coord[1])+w[2])*v[0] - v[2] * w[0])*self.dt
+        # v_up. Unstable channel cant ve calculated, so assuming 0
+        self._v_enu[2] = 0
         #self._v_enu[2] = v[2] + (a[2] + (self.U*cos(coord[1])+w[1])*v[0] - v[1]*w[0] - 9.81)*self.dt
-
+        v[0] = v1
+        v[1] = v2
     def calc_output(self):
             # calculate values on each itaration
             self._acc_body_enu()
@@ -144,6 +153,10 @@ class nav_alg:
             self.pitch.append(ang_tmp[0])
             self.roll.append(ang_tmp[1])
             self.yaw.append(ang_tmp[2])
+            a_tmp = self._a_enu.copy()
+            self.a_e.append(a_tmp[0])
+            self.a_n.append(a_tmp[1])
+            self.a_u.append(a_tmp[2])
 
     def prepare_data(self):
         self.spd_e.pop(0)
@@ -153,10 +166,17 @@ class nav_alg:
         self.pitch.pop(0)
         self.roll.pop(0)
         self.yaw.pop(0)
+        self.a_e.pop(0)
+        self.a_n.pop(0)
+        self.a_u.pop(0)
 
     def static_analysis(self):
         for i in range(self.number_of_points):
             self.calc_and_save()
+            if i == 2000:
+                print("we_are_here")
+            if i == 2000:
+                print("we_are_here")
         self.prepare_data()
 
     def dynamic_analysis_both(self):
@@ -249,3 +269,48 @@ class nav_alg:
         plt.plot(range(len(self.lon)), np.rad2deg(self.lon), label="lon")
         plt.legend()
         plt.show()
+
+
+        plt.figure(figsize=size)
+        plt.subplot(3 , 1, 1)
+        plt.plot(range(len(self.a_e)), self.a_e, label="a_e")
+        plt.legend()
+        plt.subplot(3 , 1, 2)
+        plt.plot(range(len(self.a_n)), self.a_n, label="a_n")
+        plt.legend()
+        plt.subplot(3 , 1, 3)
+        plt.plot(range(len(self.a_u)), self.a_u, label="a_up")
+        plt.legend()
+        plt.show()
+
+
+def matrix_enu_to_body(psi, teta, gamma):
+    psi = np.deg2rad(psi)
+    teta = np.deg2rad(teta)
+    gamma = np.deg2rad(gamma)
+    sp = np.sin(psi)
+    st = np.sin(teta)
+    sg = np.sin(gamma)
+    cp = np.cos(psi)
+    ct = np.cos(teta)
+    cg = np.cos(gamma)
+
+    a11 = cp*cg + sp*st*sg
+    a12 = sp*ct
+    a13 = cp*sg - sp*st*cg
+    a21 = -sp*cg + cp*st*sg
+    a22 = cp*ct
+    a23 = -sp*sg - cp*st*cg
+    a31 = -ct*sg
+    a32 = st
+    a33 = ct*cg
+
+    # body_enu matrix
+    C_body_enu = np.array([
+        [a11, a12, a13],
+        [a21, a22, a23],
+        [a31, a32, a33]
+    ])
+
+    # enu to body matrix
+    return C_body_enu.transpose()
