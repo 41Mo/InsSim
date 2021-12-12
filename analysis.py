@@ -1,5 +1,5 @@
 #%%
-from src.nav_alg import nav_alg, plots
+from src.nav_alg import nav_alg
 import numpy as np
 #%%
 # Moscow
@@ -22,7 +22,7 @@ gyro_offset_analysis.set_w_body(gyr_offset, gyr_offset, gyr_offset)
 gyro_offset_analysis.set_coordinates(lat, lon)
 
 acc_offset_analysis = nav_alg()
-acc_offset_analysis.set_a_body(acc_offset, acc_offset, acc_offset)
+acc_offset_analysis.set_a_body(acc_offset, acc_offset, acc_offset+g)
 acc_offset_analysis.set_coordinates(lat, lon)
 
 acc_drift_analysis = nav_alg()
@@ -36,7 +36,7 @@ gyro_drift_analysis.set_coordinates(lat, lon)
 #%%
 from src.csv_parser import get_data_from_csv
 SENSOR_DATA_GYR = get_data_from_csv("Gyr_X","Gyr_Y","Gyr_Z", file_name=data_file)
-gyro_random_error_analysis = nav_alg(frequency=100, analysis="dynamic_gyro", points_count=len(SENSOR_DATA_GYR["Gyr_X"]))
+gyro_random_error_analysis = nav_alg(analysis="dynamic_gyro", time=1800, frequency=100)
 gyro_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_GYR.update({ "Gyr_X":np.deg2rad(SENSOR_DATA_GYR["Gyr_X"]-np.mean(SENSOR_DATA_GYR["Gyr_X"])) })
@@ -47,7 +47,7 @@ gyro_random_error_analysis.sensor_data = SENSOR_DATA_GYR
 
 # %%
 SENSOR_DATA_ACC = get_data_from_csv("Acc_X","Acc_Y","Acc_Z", file_name=data_file)
-acc_random_error_analysis = nav_alg(frequency=1000, analysis="dynamic_acc", points_count=len(SENSOR_DATA_ACC["Acc_X"]))
+acc_random_error_analysis = nav_alg(analysis="dynamic_acc", time=1800, frequency=100)
 acc_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_ACC.update({ "Acc_X":(SENSOR_DATA_ACC["Acc_X"]-np.mean(SENSOR_DATA_ACC["Acc_X"])) })
@@ -58,7 +58,7 @@ acc_random_error_analysis.sensor_data = SENSOR_DATA_ACC
 
 #%%
 SENSOR_DATA = get_data_from_csv("Acc_X","Acc_Y","Acc_Z", "Gyr_X", "Gyr_Y", "Gyr_Z", file_name=data_file)
-random_error_analysis = nav_alg(frequency=1000, analysis="dynamic_both", points_count=len(SENSOR_DATA["Acc_X"]))
+random_error_analysis = nav_alg(analysis="dynamic_both", time=1800, frequency=100)
 random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA.update({ "Acc_X":(SENSOR_DATA["Acc_X"]-np.mean(SENSOR_DATA["Acc_X"])) })
@@ -84,35 +84,36 @@ def crete_threads_and_run_1(*objects):
     for thread in threads:
         thread.join()
 
-crete_threads_and_run_1(
-    acc_offset_analysis,
-    gyro_offset_analysis,
-    acc_drift_analysis,
-    gyro_drift_analysis,
-    gyro_random_error_analysis,
-    acc_random_error_analysis,
-    random_error_analysis
-    )
+#crete_threads_and_run_1(
+#    acc_offset_analysis,
+#    gyro_offset_analysis,
+#    acc_drift_analysis,
+#    gyro_drift_analysis,
+#    gyro_random_error_analysis,
+#    acc_random_error_analysis,
+#    random_error_analysis
+#    )
 
 # %%
-plots(acc_offset_analysis)
+acc_offset_analysis.analysis()
+acc_offset_analysis.plots()
 
 # %%
-plots(gyro_offset_analysis)
+gyro_offset_analysis.plots()
 
 # %%
-plots(acc_drift_analysis)
+acc_drift_analysis.plots()
 
 # %%
-plots(gyro_drift_analysis)
+gyro_drift_analysis.plots()
 
 # %%
-plots(gyro_random_error_analysis)
+gyro_random_error_analysis.plots()
 
 # %%
-plots(acc_random_error_analysis)
+acc_random_error_analysis.plots()
 
 #%%
-plots(random_error_analysis)
+random_error_analysis.plots()
 
 #%%

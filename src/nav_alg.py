@@ -10,10 +10,14 @@ class nav_alg:
     R_LON = 6400000.0; # earth radius [m]
     U = np.deg2rad(15)/3600 # earth speed [rad/sec]
 
-    def __init__(self, frequency=10, points_count=36000, analysis="static"):
+    def __init__(self, frequency=1, time=10800, analysis="static"):
+        """
+            frequency [HZ]
+            time [seconds]
+        """
         # input
         self.dt = 1/frequency
-        self.number_of_points = points_count
+        self.number_of_points = int(time / self.dt)
         self.analysis_type = analysis
 
         # default varaiables
@@ -113,9 +117,9 @@ class nav_alg:
         self._v_enu[0] =  v[0] + (a[0] + (self.U*sin(coord[1])+w[2])*v[1] - v[2]*(self.U*cos(coord[1])+w[1]))*self.dt
         # v_n
         self._v_enu[1] =  v[1] + (a[1] - (self.U*sin(coord[1])+w[2])*v[0] - v[2] * w[0])*self.dt
-        # v_up
-        self._v_enu[2] = 0
-        #self._v_enu[2] = v[2] + (a[2,0] + ())*self.dt
+        # v_up unstable channel cant ve calculated, so assuming 0
+        self.v_enu[2] = 0
+        #self._v_enu[2] = v[2] + (a[2] + (self.U*cos(coord[1])+w[1])*v[0] - v[1]*w[0] - 9.81)*self.dt
 
     def calc_output(self):
             # calculate values on each itaration
@@ -156,7 +160,7 @@ class nav_alg:
         self.prepare_data()
 
     def dynamic_analysis_both(self):
-        for i in range(self.number_of_points):
+        for i in range(0,self.number_of_points):
             g_x = self.sensor_data["Gyr_X"][i]
             g_y = self.sensor_data["Gyr_Y"][i]
             g_z = self.sensor_data["Gyr_Z"][i]
@@ -175,7 +179,7 @@ class nav_alg:
         self.prepare_data()
     
     def dynamic_analysis_gyro(self):
-        for i in range(self.number_of_points):
+        for i in range(0,self.number_of_points):
             self._w_body[0] = self.sensor_data["Gyr_X"][i],
             self._w_body[1] = self.sensor_data["Gyr_Y"][i],
             self._w_body[2] = self.sensor_data["Gyr_Z"][i],
@@ -184,7 +188,7 @@ class nav_alg:
         self.prepare_data()
 
     def dynamic_analysis_acc(self):
-        for i in range(self.number_of_points):
+        for i in range(0,self.number_of_points):
             self._a_body[0] = self.sensor_data["Acc_X"][i],
             self._a_body[1] = self.sensor_data["Acc_Y"][i],
             self._a_body[2] = self.sensor_data["Acc_Z"][i],
@@ -209,14 +213,14 @@ class nav_alg:
         if self.analysis_type == "dynamic_acc":
             self.dynamic_analysis_acc()
 
-    def plots(self):
+    def plots(self, size=(17,9)):
         """
         generate 3 plots 
         - orientation angles
         - speed
         - coordinates
         """
-        plt.figure(figsize=(17,9))
+        plt.figure(figsize=size)
         plt.subplot(3 , 1, 1)
         plt.plot(range(len(self.pitch)), np.rad2deg(self.pitch), label="roll")
         plt.legend()
@@ -228,7 +232,7 @@ class nav_alg:
         plt.legend()
         plt.show()
 
-        plt.figure(figsize=(17,9))
+        plt.figure(figsize=size)
         plt.subplot(2 , 1, 1)
         plt.plot(range(len(self.spd_e)), self.spd_e, label="v_e")
         plt.legend()
@@ -237,7 +241,7 @@ class nav_alg:
         plt.legend()
         plt.show()
 
-        plt.figure(figsize=(17,9))
+        plt.figure(figsize=size)
         plt.subplot(2 , 1, 1)
         plt.plot(range(len(self.lat)), np.rad2deg(self.lat), label="lat")
         plt.legend()

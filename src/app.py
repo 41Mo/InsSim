@@ -142,7 +142,7 @@ class MainWindow(tmpl.MainFrame):
         selection = self.m_analysis_type.GetSelection()
         self.nav_alg = na.nav_alg(
             frequency=int(self.m_enter_freq.GetValue()),
-            points_count=int(self.m_enter_points_num.GetValue())
+            time=int(self.m_enter_points_num.GetValue())
         )
 
         self.nav_alg.set_coordinates(
@@ -163,7 +163,7 @@ class MainWindow(tmpl.MainFrame):
 
         wx.MessageBox("Running")
         self.nav_alg.analysis()
-        self.nav_alg.plots()
+        self.nav_alg.plots(size=(6,3))
         wx.MessageBox("All done")
         
 app = wx.App(False) 
