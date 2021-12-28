@@ -94,10 +94,10 @@ def crete_threads_and_run_1(*objects):
 crete_threads_and_run_1(
     acc_offset_analysis,
     gyro_drift_analysis,
-    gyro_random_error_analysis,
-    acc_random_error_analysis,
-    random_error_analysis,
-    ideal_system
+    #gyro_random_error_analysis,
+    #acc_random_error_analysis,
+    #random_error_analysis,
+    #ideal_system
     )
 
 #%%
