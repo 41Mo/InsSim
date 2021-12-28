@@ -1,20 +1,20 @@
 #%%
-from src.nav_alg import nav_alg,matrix_enu_to_body
+from src.nav_alg import nav_alg
 import numpy as np
+import math as math
 #%%
 # Moscow
-lat = 55.75
-lon = 37.61
+lat = 0#55.75
+lon = 0#37.61
 
 # file with real sensors data
 data_file = "csv_data/Sensors_and_orientation.csv"
 
 # sensor errors
-g=9.81
-gyr_offset = np.deg2rad(0.1) # [deg/sec]
-acc_offset = 0.002/g # 2 [mg]
-acc_drift = 0.00001/g # 0.1 [mg]
-gyr_drift = np.deg2rad(10)/3600 # [deg/hour]
+gyr_offset = math.radians(0.1) # [deg/sec]
+acc_offset = 0.002 # 2 [mg]
+acc_drift = 0.0001 # 0.1 [mg]
+gyr_drift = math.radians(10)/3600 # [deg/hour]
 
 #%%
 # alignemnt errors [deg]
@@ -22,28 +22,40 @@ gyr_drift = np.deg2rad(10)/3600 # [deg/hour]
 psi = 0
 teta = 0
 gamma = 0
-# assuming we are standing steel
-a_enu = np.array([[0],[0],[g]])
-
-C_enu_body = matrix_enu_to_body(psi, teta, gamma)
-# re-project vect
-a_body = C_enu_body @ a_enu
 
 # %%
+ideal_system = nav_alg()
+
 gyro_offset_analysis = nav_alg()
-gyro_offset_analysis.set_w_body(gyr_offset, gyr_offset, gyr_offset)
+gyro_offset_analysis.set_w_body(
+    gyr_offset,
+    gyr_offset,
+    gyr_offset
+)
 gyro_offset_analysis.set_coordinates(lat, lon)
 
-acc_offset_analysis = nav_alg(frequency=1, time=10800)
-acc_offset_analysis.set_a_body(a_body[0][0], a_body[1][0], a_body[2][0])
+acc_offset_analysis = nav_alg()
+acc_offset_analysis.set_a_body(
+    acc_offset,
+    acc_offset,
+    acc_offset
+)
 acc_offset_analysis.set_coordinates(lat, lon)
 
 acc_drift_analysis = nav_alg()
-acc_drift_analysis.set_a_body(a_body[0][0], a_body[1][0], a_body[2][0])
+acc_drift_analysis.set_a_body(
+    acc_drift,
+    acc_drift,
+    acc_drift
+)
 acc_drift_analysis.set_coordinates(lat, lon)
 
 gyro_drift_analysis= nav_alg()
-gyro_drift_analysis.set_w_body(gyr_drift, gyr_drift, gyr_drift)
+gyro_drift_analysis.set_w_body(
+    gyr_drift,
+    gyr_drift,
+    gyr_drift
+)
 gyro_drift_analysis.set_coordinates(lat, lon)
 
 #%%
@@ -97,18 +109,21 @@ def crete_threads_and_run_1(*objects):
     for thread in threads:
         thread.join()
 
-#crete_threads_and_run_1(
-#    acc_offset_analysis,
-#    gyro_offset_analysis,
-#    acc_drift_analysis,
-#    gyro_drift_analysis,
-#    gyro_random_error_analysis,
-#    acc_random_error_analysis,
-#    random_error_analysis
-#    )
+crete_threads_and_run_1(
+    acc_offset_analysis,
+    gyro_offset_analysis,
+    acc_drift_analysis,
+    gyro_drift_analysis,
+    #gyro_random_error_analysis,
+    #acc_random_error_analysis,
+    #random_error_analysis,
+    #ideal_system
+    )
+
+#%%
+ideal_system.plots()
 
 # %%
-acc_offset_analysis.analysis()
 acc_offset_analysis.plots()
 
 # %%
