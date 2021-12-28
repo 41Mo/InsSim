@@ -3,7 +3,7 @@ from src.nav_alg import nav_alg
 import numpy as np
 import math as math
 #%%
-# Moscow
+# e.g Moscow
 lat = 0#55.75
 lon = 0#37.61
 
@@ -11,9 +11,7 @@ lon = 0#37.61
 data_file = "csv_data/Sensors_and_orientation.csv"
 
 # sensor errors
-gyr_offset = math.radians(0.1) # [deg/sec]
 acc_offset = 0.002 # 2 [mg]
-acc_drift = 0.0001 # 0.1 [mg]
 gyr_drift = math.radians(10)/3600 # [deg/hour]
 
 #%%
@@ -26,14 +24,6 @@ gamma = 0
 # %%
 ideal_system = nav_alg()
 
-gyro_offset_analysis = nav_alg()
-gyro_offset_analysis.set_w_body(
-    gyr_offset,
-    gyr_offset,
-    gyr_offset
-)
-gyro_offset_analysis.set_coordinates(lat, lon)
-
 acc_offset_analysis = nav_alg()
 acc_offset_analysis.set_a_body(
     acc_offset,
@@ -41,14 +31,6 @@ acc_offset_analysis.set_a_body(
     acc_offset
 )
 acc_offset_analysis.set_coordinates(lat, lon)
-
-acc_drift_analysis = nav_alg()
-acc_drift_analysis.set_a_body(
-    acc_drift,
-    acc_drift,
-    acc_drift
-)
-acc_drift_analysis.set_coordinates(lat, lon)
 
 gyro_drift_analysis= nav_alg()
 gyro_drift_analysis.set_w_body(
@@ -111,13 +93,11 @@ def crete_threads_and_run_1(*objects):
 
 crete_threads_and_run_1(
     acc_offset_analysis,
-    gyro_offset_analysis,
-    acc_drift_analysis,
     gyro_drift_analysis,
-    #gyro_random_error_analysis,
-    #acc_random_error_analysis,
-    #random_error_analysis,
-    #ideal_system
+    gyro_random_error_analysis,
+    acc_random_error_analysis,
+    random_error_analysis,
+    ideal_system
     )
 
 #%%
@@ -125,12 +105,6 @@ ideal_system.plots()
 
 # %%
 acc_offset_analysis.plots()
-
-# %%
-gyro_offset_analysis.plots()
-
-# %%
-acc_drift_analysis.plots()
 
 # %%
 gyro_drift_analysis.plots()
