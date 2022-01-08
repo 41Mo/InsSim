@@ -1,3 +1,4 @@
+import matplotlib
 from matplotlib.colors import is_color_like
 import numpy as np
 import matplotlib.pyplot as plt
@@ -94,7 +95,7 @@ class nav_alg:
     def _euler_angles(self):
         C = self._tm_body_enu
 
-        C_0 = np.sqrt(pow(C[2,0],2) + pow(C[2,2],2))
+        C_0 = np.sqrt(pow(C[0,2],2) + pow(C[2,2],2))
 
         # teta
         self._rph_angles[0] = np.arctan(C[1,2]/C_0)
@@ -111,8 +112,13 @@ class nav_alg:
         lin_spd = self._v_enu
         coords = self._coord
 
-        self._coord[0] = coords[0] + (lin_spd[1]/(self.R+self._H))*self.dt
-        self._coord[1] = coords[1] + (lin_spd[0]/((self.R+self._H) * cos(coords[0]))) * self.dt
+        v_e = lin_spd[0]
+        v_n = lin_spd[1]
+
+        # phi
+        self._coord[0] = coords[0] + (v_n/(self.R+self._H))*self.dt
+        # lambda
+        self._coord[1] = coords[1] + (v_e/((self.R+self._H) * cos(coords[0]))) * self.dt
 
     def _ang_velocity_body_enu(self):
         spd = self._v_enu
@@ -134,7 +140,7 @@ class nav_alg:
         # v_n
         #self._v_enu[1][0]
         v2 =  v[1] + (a[1] - (self.U*sin(coord[0])+w[2])*v[0] - v[2] * w[0])*self.dt
-        # v_up. Unstable channel cant ve calculated, so assuming 0
+        # v_up. Unstable channel cant be calculated, so assuming 0
         self._v_enu[2] = 0
         #self._v_enu[2] = v[2] + (a[2] + (self.U*cos(coord[1])+w[1])*v[0] - v[1]*w[0] - 9.81)*self.dt
         v[0] = v1
@@ -143,10 +149,11 @@ class nav_alg:
             # calculate values on each itaration
             self._acc_body_enu()
             self._speed()
-            self._coordinates()
             self._ang_velocity_body_enu()
             self._puasson_equation()
+
             self._euler_angles()
+            self._coordinates()
 
     def calc_and_save(self):
             self.calc_output()
@@ -193,6 +200,10 @@ class nav_alg:
             self._a_body[2,0] = self._a_body_input[2,0] + \
                 self.a_after_alignment_body[2,0]
 
+            #if i == 5064:
+            #    print("asd")
+            #if i == 8000:
+            #    print("asdf")
             self.calc_and_save()
         self.prepare_data()
 
@@ -253,10 +264,10 @@ class nav_alg:
         """
         if not self.is_aligned:
             self.alignment()
-            print("aligned with ideal matrix")
+            print("aligned with ideal matrix\n")
 
         if not self.is_coordinates_set:
-            print(f"Coordinates not seted up, going with lat: {self._coord[0]}, lon: {self._coord[1]}")
+            print(f"Coordinates not seted up, going with lat: {self._coord[0]}, lon: {self._coord[1]}\n")
 
         if self.analysis_type == "static":
             self.static_analysis()
@@ -319,77 +330,45 @@ class nav_alg:
         self._tm_body_enu = C_body_enu.copy()
         self.is_aligned = True
 
-    def plots(self, size=(15,15)):
+    def plots(self, size=(140/25.4,170/25.4), save=False, title=""):
         """
         generate 3 plots 
         - orientation angles
         - speed
         - coordinates
         """
-        plt.figure(figsize=size)
-        plt.rc('font', size=14) 
-        plt.tight_layout()
-        plt.subplot(3 , 1, 1)
-        plt.plot(np.linspace(0, len(self.pitch)*self.dt, len(self.pitch)), np.rad2deg(self.pitch)*60, label="roll")
-        plt.xlabel("время, с")
-        plt.ylabel('крен, угл мин')
-        #plt.legend()
-        plt.subplot(3 , 1, 2)
-        plt.plot(np.linspace(0, len(self.roll)*self.dt, len(self.roll)), np.rad2deg(self.roll)*60, label="pitch")
-        plt.xlabel("время, с")
-        plt.ylabel('тангаж, угл мин')
-        #plt.legend()
-        plt.tight_layout()
-        plt.subplot(3 , 1, 3)
-        plt.plot(np.linspace(0, len(self.yaw)*self.dt, len(self.yaw)), np.rad2deg(self.yaw)*60, label="yaw")
-        plt.xlabel("время, с")
-        plt.ylabel('курс, угл мин')
-        #plt.legend()
-        plt.tight_layout()
-        plt.show()
-
-        plt.figure(figsize=size)
-        plt.rc('font', size=14) 
-        plt.tight_layout()
-        plt.subplot(2 , 1, 1)
-        plt.plot(np.linspace(0, len(self.spd_e)*self.dt, len(self.spd_e)), self.spd_e, label="v_e")
-        plt.xlabel("время, с")
-        plt.ylabel('v_e, м/c')
-        #plt.legend()
-        plt.subplot(2 , 1, 2)
-        plt.plot(np.linspace(0, len(self.spd_n)*self.dt, len(self.spd_n)), self.spd_n, label="v_n")
-        plt.xlabel("время, с")
-        plt.ylabel('v_n, м/c')
-        #plt.legend()
-        plt.show()
-
-        plt.figure(figsize=size)
-        plt.rc('font', size=12) 
-        plt.tight_layout()
-        plt.subplot(2 , 1, 1)
-        plt.plot(np.linspace(0, len(self.lat)*self.dt, len(self.lat)), np.rad2deg(self.lat)*111138.5, label="lat")
-        plt.xlabel("время, с")
-        plt.ylabel('широта, м')
-        #plt.legend()
-        plt.subplot(2 , 1, 2)
-        plt.plot(np.linspace(0, len(self.lon)*self.dt, len(self.lon)), np.rad2deg(self.lon)*111138.5, label="lon")
-        plt.xlabel("время, с")
-        plt.ylabel('долгота, м')
-        #plt.legend()
-        plt.show()
-
-
         #plt.figure(figsize=size)
-        #plt.subplot(3 , 1, 1)
-        #plt.plot(range(len(self.a_e)), self.a_e, label="a_e")
-        #plt.legend()
-        #plt.subplot(3 , 1, 2)
-        #plt.plot(range(len(self.a_n)), self.a_n, label="a_n")
-        #plt.legend()
-        #plt.subplot(3 , 1, 3)
-        #plt.plot(range(len(self.a_u)), self.a_u, label="a_up")
-        #plt.legend()
-        #plt.show()
+        #plt.rc('font', size=10) 
+        #fig = plt.figure(figsize=size, constrained_layout=True)
+        #axs = plt.subplots(7,1)
+        axs = plt.figure(figsize=size, constrained_layout=True).subplots(7,1,sharex=True)
+        axs[0].plot(np.linspace(0, len(self.pitch)*self.dt, len(self.pitch)), np.rad2deg(self.pitch)*60, label="roll")
+        axs[0].set_ylabel('$\\theta$, угл мин')
+
+        axs[1].plot(np.linspace(0, len(self.roll)*self.dt, len(self.roll)), np.rad2deg(self.roll)*60, label="pitch")
+        axs[1].set_ylabel('$\gamma$, угл мин')
+
+        axs[2].plot(np.linspace(0, len(self.yaw)*self.dt, len(self.yaw)), np.rad2deg(self.yaw)*60, label="yaw")
+        axs[2].set_ylabel('$\psi$, угл мин')
+
+        axs[3].plot(np.linspace(0, len(self.spd_e)*self.dt, len(self.spd_e)), self.spd_e, label="v_e")
+        axs[3].set_ylabel('$V_E$, м/c')
+
+        axs[4].plot(np.linspace(0, len(self.spd_n)*self.dt, len(self.spd_n)), self.spd_n, label="v_n")
+        axs[4].set_ylabel('$V_N$, м/c')
+
+        axs[5].plot(np.linspace(0, len(self.lat)*self.dt, len(self.lat)), np.rad2deg(self.lat)*111138.5, label="lat")
+        axs[5].set_ylabel('$\\varphi$, м')
+
+        axs[6].plot(np.linspace(0, len(self.lon)*self.dt, len(self.lon)), np.rad2deg(self.lon)*111138.5, label="lon")
+        axs[6].set_xlabel("время, с")
+        axs[6].set_ylabel('$\lambda$, м')
+
+        #plt.tight_layout()
+        if save:
+            plt.savefig("./images/"+title+".jpg", bbox_inches='tight')
+        plt.show()
+
 
     def _init_b(self):
         la = self._coord[0]

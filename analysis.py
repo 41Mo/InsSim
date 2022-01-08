@@ -1,7 +1,12 @@
 #%%
-from src.nav_alg import nav_alg
 import numpy as np
 import math as math
+from importlib import reload  # Python 3.4+
+
+import src.nav_alg
+src.nav_alg = reload(src.nav_alg)
+from src.nav_alg import nav_alg
+from src.csv_parser import get_data_from_csv
 #%%
 # e.g Moscow
 lat = 0#55.75
@@ -11,7 +16,7 @@ lon = 0#37.61
 data_file = "csv_data/Sensors_and_orientation.csv"
 
 # sensor errors
-acc_offset = 0.002 # 2 [mg]
+acc_offset = 0.0001 # 2 [mg]
 gyr_drift = math.radians(10)/3600 # [deg/hour]
 
 #%%
@@ -28,7 +33,7 @@ acc_offset_analysis = nav_alg()
 acc_offset_analysis.set_a_body(
     acc_offset,
     acc_offset,
-    acc_offset
+    0#acc_offset
 )
 acc_offset_analysis.set_coordinates(lat, lon)
 
@@ -36,12 +41,11 @@ gyro_drift_analysis= nav_alg()
 gyro_drift_analysis.set_w_body(
     gyr_drift,
     gyr_drift,
-    gyr_drift
+    0#gyr_drift
 )
 gyro_drift_analysis.set_coordinates(lat, lon)
 
 #%%
-from src.csv_parser import get_data_from_csv
 SENSOR_DATA_GYR = get_data_from_csv("Gyr_X","Gyr_Y","Gyr_Z", file_name=data_file)
 gyro_random_error_analysis = nav_alg(analysis="dynamic_gyro", time=1800, frequency=100)
 gyro_random_error_analysis.set_coordinates(lat, lon)
@@ -94,28 +98,27 @@ def crete_threads_and_run_1(*objects):
 crete_threads_and_run_1(
     acc_offset_analysis,
     gyro_drift_analysis,
-    #gyro_random_error_analysis,
-    #acc_random_error_analysis,
-    #random_error_analysis,
+    gyro_random_error_analysis,
+    acc_random_error_analysis,
     #ideal_system
     )
 
 #%%
-ideal_system.plots()
+#ideal_system.plots(save=False, title="ideal")
 
 # %%
-acc_offset_analysis.plots()
+acc_offset_analysis.plots(save=False, title="acc_offset")
 
 # %%
-gyro_drift_analysis.plots()
+gyro_drift_analysis.plots(save=False, title="gyro drift")
 
 # %%
-gyro_random_error_analysis.plots()
+gyro_random_error_analysis.plots(save=False, title="gyr rnd")
 
 # %%
-acc_random_error_analysis.plots()
+acc_random_error_analysis.plots(save=False, title="acc rnd")
 
 #%%
-random_error_analysis.plots()
+#random_error_analysis.plots()
 
 #%%
