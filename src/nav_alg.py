@@ -252,9 +252,9 @@ class nav_alg:
             self._a_body[0,0] = self.sensor_data["Acc_X"][i] + \
                 self.a_after_alignment_body[0,0]
             self._a_body[1,0] = self.sensor_data["Acc_Y"][i] + \
-                self.a_after_alignment_body[0,0]
+                self.a_after_alignment_body[1,0]
             self._a_body[2,0] = self.sensor_data["Acc_Z"][i] + \
-                self.a_after_alignment_body[0,0]
+                self.a_after_alignment_body[2,0]
 
             self._w_body[0,0] = self.w_after_alignment_body[0,0]
             self._w_body[1,0] = self.w_after_alignment_body[1,0]
@@ -369,22 +369,61 @@ class nav_alg:
         axs[6].set_xlabel("время, с")
         axs[6].set_ylabel('$\lambda$, м')
 
+
         if save:
             plt.savefig("./images/"+title+".jpg", bbox_inches='tight')
         plt.show()
 
         # additional
-        axs = plt.figure(constrained_layout=True).subplots(2,1,sharex=True)
+        axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
         x_time = np.linspace(0, len(self.w_e)*self.dt, len(self.w_e))
-        axs[0].plot(x_time, np.rad2deg(self.w_e), x_time, np.rad2deg(self.w_n), x_time, np.rad2deg(self.w_u))
-        axs[0].set_ylabel('w_enu')
-        axs[0].legend(["w_e","w_n","w_up"])
+        axs[0].plot(x_time, np.rad2deg(self.w_e))
+        axs[0].set_ylabel('w_e')
 
-        axs[1].plot(x_time, np.rad2deg(self.a_e), x_time, np.rad2deg(self.a_n), x_time, np.rad2deg(self.a_u))
-        axs[1].set_xlabel("время, с")
-        axs[1].set_ylabel('a_enu')
-        axs[1].legend(["a_e","a_n","a_up"])
+        axs[1].plot(x_time, np.rad2deg(self.w_n))
+        axs[1].set_ylabel('w_n')
+
+        axs[2].plot(x_time, np.rad2deg(self.w_u))
+        axs[2].set_ylabel('w_u')
+
+        axs[3].plot(x_time, (self.a_e))
+        axs[3].set_ylabel('a_e')
+
+        axs[4].plot(x_time, (self.a_n))
+        axs[4].set_ylabel('a_n')
+
+        axs[5].plot(x_time, (self.a_u))
+        axs[5].set_ylabel('a_u')
+        axs[5].set_xlabel("время, с")
         plt.show()
+
+
+        if self.analysis_type == "dynamic_gyro" :
+            axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
+            x_time = self.sensor_data["Gyr_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
+
+            axs[0].plot(x_time, np.rad2deg(self.sensor_data["Gyr_X"]))
+            axs[0].set_ylabel('wx_b')
+
+            axs[1].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Y"]))
+            axs[1].set_ylabel('wy_b')
+
+            axs[2].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Z"]))
+            axs[2].set_ylabel('wz_b')
+            plt.show()
+
+        if self.analysis_type == "dynamic_acc":
+            axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
+            x_time = self.sensor_data["Acc_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
+            axs[0].plot(x_time, self.sensor_data["Acc_X"])
+            axs[0].set_ylabel('ax_b')
+
+            axs[1].plot(x_time, self.sensor_data["Acc_Y"])
+            axs[1].set_ylabel('ay_b')
+
+            axs[2].plot(x_time, self.sensor_data["Acc_Z"])
+            axs[2].set_ylabel('az_b')
+            plt.show()
 
     def _init_b(self):
         la = self._coord[0]
