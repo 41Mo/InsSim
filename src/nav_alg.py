@@ -169,10 +169,15 @@ class nav_alg:
             self.pitch.append(ang_tmp[0])
             self.roll.append(ang_tmp[1])
             self.yaw.append(ang_tmp[2])
-            #a_tmp = self._a_enu.copy()
-            #self.a_e.append(a_tmp[0])
-            #self.a_n.append(a_tmp[1])
-            #self.a_u.append(a_tmp[2])
+
+            a_tmp = self._a_enu.copy()
+            w_tmp = self._w_enu.copy()
+            self.a_e.append(a_tmp[0])
+            self.a_n.append(a_tmp[1])
+            self.a_u.append(a_tmp[2])
+            self.w_e.append(w_tmp[0])
+            self.w_n.append(w_tmp[1])
+            self.w_u.append(w_tmp[2])
 
     def prepare_data(self):
         self.spd_e.pop(0)
@@ -364,11 +369,22 @@ class nav_alg:
         axs[6].set_xlabel("время, с")
         axs[6].set_ylabel('$\lambda$, м')
 
-        #plt.tight_layout()
         if save:
             plt.savefig("./images/"+title+".jpg", bbox_inches='tight')
         plt.show()
 
+        # additional
+        axs = plt.figure(constrained_layout=True).subplots(2,1,sharex=True)
+        x_time = np.linspace(0, len(self.w_e)*self.dt, len(self.w_e))
+        axs[0].plot(x_time, np.rad2deg(self.w_e), x_time, np.rad2deg(self.w_n), x_time, np.rad2deg(self.w_u))
+        axs[0].set_ylabel('w_enu')
+        axs[0].legend(["w_e","w_n","w_up"])
+
+        axs[1].plot(x_time, np.rad2deg(self.a_e), x_time, np.rad2deg(self.a_n), x_time, np.rad2deg(self.a_u))
+        axs[1].set_xlabel("время, с")
+        axs[1].set_ylabel('a_enu')
+        axs[1].legend(["a_e","a_n","a_up"])
+        plt.show()
 
     def _init_b(self):
         la = self._coord[0]
