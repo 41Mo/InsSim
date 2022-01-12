@@ -1,8 +1,7 @@
-import matplotlib
-from matplotlib.colors import is_color_like
+from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import cos as cos, double
+from numpy import cos as cos
 from numpy import sin as sin
 from numpy import tan as tan
 import math as math
@@ -13,7 +12,7 @@ class nav_alg:
     U = math.radians(15)/3600 # earth speed [rad/sec]
     G = 9.81 # [m/s/s]
 
-    def __init__(self, frequency=1, time=10800, analysis="static"):
+    def __init__(self, frequency=1, time=10800, analysis="static", obj_name=""):
         """
             frequency [HZ]
             time [seconds]
@@ -33,6 +32,7 @@ class nav_alg:
         self.sensor_data = {}
 
         # local variables
+        self.__name__ = obj_name
         self._w_enu          = np.array([0,0,0], dtype=np.double).reshape(3,1)         # angle speed enup
         self._a_enu          = np.array([0,0,0], dtype=np.double).reshape(3,1)         # acceleration enup
         self._rph_angles  = np.array([0,0,0], dtype=np.double).reshape(3,1)         # euler angles
@@ -57,7 +57,6 @@ class nav_alg:
         self.w_e = []
         self.w_n = []
         self.w_u = []
-        self._init_b() 
     def set_a_body(self, ax, ay, az):
         self._a_body_input=np.array([ax, ay, az]).reshape(3,1)
 
@@ -133,18 +132,13 @@ class nav_alg:
         a = self._a_enu
         coord = self._coord
         v = self._v_enu
-        tmp = w[2,0]
         # v_e
-        #self._v_enu[0][0]
-        v1 =  v[0] + (a[0] + (self.U*sin(coord[0])+w[2])*v[1] - v[2]*(self.U*cos(coord[0])+w[1]))*self.dt
+        self._v_enu[0] =  v[0] + (a[0] + (self.U*sin(coord[0])+w[2])*v[1] - v[2]*(self.U*cos(coord[0])+w[1]))*self.dt
         # v_n
-        #self._v_enu[1][0]
-        v2 =  v[1] + (a[1] - (self.U*sin(coord[0])+w[2])*v[0] - v[2] * w[0])*self.dt
+        self._v_enu[1] =  v[1] + (a[1] - (self.U*sin(coord[0])+w[2])*v[0] - v[2] * w[0])*self.dt
         # v_up. Unstable channel cant be calculated, so assuming 0
         self._v_enu[2] = 0
         #self._v_enu[2] = v[2] + (a[2] + (self.U*cos(coord[1])+w[1])*v[0] - v[1]*w[0] - 9.81)*self.dt
-        v[0] = v1
-        v[1] = v2
     def calc_output(self):
             # calculate values on each itaration
             self._acc_body_enu()
@@ -205,10 +199,6 @@ class nav_alg:
             self._a_body[2,0] = self._a_body_input[2,0] + \
                 self.a_after_alignment_body[2,0]
 
-            #if i == 5064:
-            #    print("asd")
-            #if i == 8000:
-            #    print("asdf")
             self.calc_and_save()
         self.prepare_data()
 
@@ -325,7 +315,8 @@ class nav_alg:
         w_enu = np.array([
             [0],
             [self.U*math.cos(self._coord[0])],
-            [self.U*math.sin(self._coord[0])]]
+            [self.U*math.sin(self._coord[0])]
+        ]
         )
 
         C_enu_body,C_body_enu = alignment_matrix(psi, teta, gamma)
@@ -335,21 +326,33 @@ class nav_alg:
         self._tm_body_enu = C_body_enu.copy()
         self.is_aligned = True
 
-    def plots(self, size=(140/25.4,170/25.4), save=False, title=""):
+    def plots(self, size:Tuple=(140,170), save:bool=False, title:str="", additional_plots:bool=False):
         """
-        generate 3 plots 
+        generate 1 plot with 7 subplots
         - orientation angles
         - speed
         - coordinates
+        additional debug plots:
+        - a_e, a_n, a_up
+        - w_e, w_n, w_up
         """
         #plt.figure(figsize=size)
         #plt.rc('font', size=10) 
         #fig = plt.figure(figsize=size, constrained_layout=True)
         #axs = plt.subplots(7,1)
-        axs = plt.figure(figsize=size, constrained_layout=True).subplots(7,1,sharex=True)
+
+        size = (size[0]/25.4, size[1]/25.4)
+
+        # setting title with obj_name if title is not defined
+        if title == "" and self.__name__ != "":
+            title = self.__name__
+
+        fig,axs = plt.subplots(7,1,sharex=True,constrained_layout=True)
+        fig.set_size_inches(size)
+        fig.suptitle(title)
+
         axs[0].plot(np.linspace(0, len(self.pitch)*self.dt, len(self.pitch)), np.rad2deg(self.pitch)*60, label="roll")
         axs[0].set_ylabel('$\\theta$, угл мин')
-
         axs[1].plot(np.linspace(0, len(self.roll)*self.dt, len(self.roll)), np.rad2deg(self.roll)*60, label="pitch")
         axs[1].set_ylabel('$\gamma$, угл мин')
 
@@ -375,132 +378,65 @@ class nav_alg:
         plt.show()
 
         # additional
-        axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
-        x_time = np.linspace(0, len(self.w_e)*self.dt, len(self.w_e))
-        axs[0].plot(x_time, np.rad2deg(self.w_e))
-        axs[0].set_ylabel('w_e')
+        if additional_plots:
+            fig,axs = plt.subplots(6,1,sharex=True,constrained_layout=True)
+            fig.set_size_inches(size)
+            fig.suptitle(title)
 
-        axs[1].plot(x_time, np.rad2deg(self.w_n))
-        axs[1].set_ylabel('w_n')
+            x_time = np.linspace(0, len(self.w_e)*self.dt, len(self.w_e))
+            axs[0].plot(x_time, np.rad2deg(self.w_e))
+            axs[0].set_ylabel('w_e')
 
-        axs[2].plot(x_time, np.rad2deg(self.w_u))
-        axs[2].set_ylabel('w_u')
+            axs[1].plot(x_time, np.rad2deg(self.w_n))
+            axs[1].set_ylabel('w_n')
 
-        axs[3].plot(x_time, (self.a_e))
-        axs[3].set_ylabel('a_e')
+            axs[2].plot(x_time, np.rad2deg(self.w_u))
+            axs[2].set_ylabel('w_u')
 
-        axs[4].plot(x_time, (self.a_n))
-        axs[4].set_ylabel('a_n')
+            axs[3].plot(x_time, (self.a_e))
+            axs[3].set_ylabel('a_e')
 
-        axs[5].plot(x_time, (self.a_u))
-        axs[5].set_ylabel('a_u')
-        axs[5].set_xlabel("время, с")
-        plt.show()
+            axs[4].plot(x_time, (self.a_n))
+            axs[4].set_ylabel('a_n')
 
-
-        if self.analysis_type == "dynamic_gyro" :
-            axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
-            x_time = self.sensor_data["Gyr_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
-
-            axs[0].plot(x_time, np.rad2deg(self.sensor_data["Gyr_X"]))
-            axs[0].set_ylabel('wx_b')
-
-            axs[1].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Y"]))
-            axs[1].set_ylabel('wy_b')
-
-            axs[2].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Z"]))
-            axs[2].set_ylabel('wz_b')
+            axs[5].plot(x_time, (self.a_u))
+            axs[5].set_ylabel('a_u')
+            axs[5].set_xlabel("время, с")
             plt.show()
 
-        if self.analysis_type == "dynamic_acc":
-            axs = plt.figure(constrained_layout=True).subplots(6,1,sharex=True)
-            x_time = self.sensor_data["Acc_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
-            axs[0].plot(x_time, self.sensor_data["Acc_X"])
-            axs[0].set_ylabel('ax_b')
 
-            axs[1].plot(x_time, self.sensor_data["Acc_Y"])
-            axs[1].set_ylabel('ay_b')
+            if self.analysis_type == "dynamic_gyro" :
 
-            axs[2].plot(x_time, self.sensor_data["Acc_Z"])
-            axs[2].set_ylabel('az_b')
-            plt.show()
+                fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
+                fig.set_size_inches(size)
+                fig.suptitle(title)
 
-    def _init_b(self):
-        la = self._coord[0]
-        phi = self._coord[1]
-        sl = np.sin(la)
-        cl = np.cos(la)
-        sp = np.sin(phi)
-        cp = np.cos(phi)
+                x_time = self.sensor_data["Gyr_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
 
-        self._b12 = cl
-        self._b22 = -sp*sl
-        self._b23 = cp
-        self._b32 = cp*sl
-        self._b33 = sp
+                axs[0].plot(x_time, np.rad2deg(self.sensor_data["Gyr_X"]))
+                axs[0].set_ylabel('wx_b')
 
+                axs[1].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Y"]))
+                axs[1].set_ylabel('wy_b')
 
+                axs[2].plot(x_time, np.rad2deg(self.sensor_data["Gyr_Z"]))
+                axs[2].set_ylabel('wz_b')
 
-class nav_alg_alt(nav_alg):
-    def __init__(self, frequency=1, time=10800, analysis="static"):
-        nav_alg.__init__(self, frequency, time, analysis)
+                plt.show()
 
+            if self.analysis_type == "dynamic_acc":
+                fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
+                fig.set_size_inches(size)
+                fig.suptitle(title)
 
-    def _initial_coordinates(self):
-        self._coord[0] = np.arctan(self._b33/self._b23)
-        tanphi = np.sqrt( pow(self._b22,2)+pow(self._b32,2) ) / self._b12
-        self._coord[1] = np.arctan(tanphi)
+                x_time = self.sensor_data["Acc_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
+                axs[0].plot(x_time, self.sensor_data["Acc_X"])
+                axs[0].set_ylabel('ax_b')
 
-    def _ang_velocity(self):
-        Vox = self._v_enu[0][0]
-        Voy = self._v_enu[1][0]
-        self._w_enu[0] = -Voy/self.R
-        self._w_enu[1] = self.U * self._b23 + Vox/self.R
-        self._w_enu[2] = self.U * self._b33 + Vox/self.R * self._b33/self._b23
+                axs[1].plot(x_time, self.sensor_data["Acc_Y"])
+                axs[1].set_ylabel('ay_b')
 
-    def _speed(self):
-        a_e = self._a_enu[0][0]
-        a_n = self._a_enu[1][0]
-        vx = self._v_enu[0][0]
-        vy = self._v_enu[1][0]
+                axs[2].plot(x_time, self.sensor_data["Acc_Z"])
+                axs[2].set_ylabel('az_b')
 
-        middle = 2*self.U*self._b33 + vx/self.R * self._b33/self._b23
-
-        self._v_enu[0] = a_e*self.dt + middle*vy*self.dt
-            #- (2*self.U*self._b23 + self.vx/self.R ) * vz
-        self._v_enu[1] = a_n*self.dt + middle*vx*self.dt
-    
-    def _coordinates(self):
-        la = self._coord[0]
-        phi = self._coord[1]
-        self._coord[0] = phi + self.dt*self._v_enu[1]/(self.R)
-        self._coord[1] = la + self.dt*self._v_enu[0]/(self.R*np.cos(phi))
-
-    def _b_coeff(self):
-        vox = self._v_enu[0]
-        voy = self._v_enu[1]
-        uox = -voy / self.R
-        uoy = vox / self.R
-        uoz = vox/self.R*np.tan(self._coord[1])
-
-        b12 = self._b12
-        b22 = self._b22
-        b23 = self._b23
-        b32 = self._b32
-        b33 = self._b33
-
-        self._b12 = b12 + (uoz*b22 - uoy*b32)*self.dt
-        self._b22 = b22 - (uoz*b12 + uox*b32)*self.dt
-        self._b32 = b32 + (uoy*b12 - uox*b22)*self.dt
-        self._b23 = b23 + uox*b33*self.dt
-        self._b33 = b33 - uox*b23*self.dt
-
-    def calc_output(self):
-            # calculate values on each itaration
-            self._acc_body_enu()
-            self._speed()
-            self._coordinates()
-            self._ang_velocity()
-            self._puasson_equation()
-            self._euler_angles()
-            self._b_coeff()
+                plt.show()
