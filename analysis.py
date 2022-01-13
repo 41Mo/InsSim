@@ -7,6 +7,7 @@ import src.nav_alg
 src.nav_alg = reload(src.nav_alg)
 from src.nav_alg import nav_alg
 from src.csv_parser import get_data_from_csv
+from src.white_noize_gen import gen_white_noize
 
 import logging
 logging.basicConfig(
@@ -18,38 +19,44 @@ logging.basicConfig(
 logging.getLogger('src.nav_alg').setLevel(logging.INFO)
 
 #%%
+"""
+    Config section
+"""
 # e.g Moscow
 lat = 0#55.75
 lon = 0#37.61
 
 # file with real sensors data
 data_file = "csv_data/Sensors_and_orientation.csv"
-sample_time = 1800
-data_frequency = 100
+sample_time = 1800 # seconds
+data_frequency = 100 # Hz
+do_gen_white_noize = False
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 # additional plots such as wx,wy,wz,ax,ay,az in both body and enu would be shown
-show_additional_plots = True
-
+show_additional_plots = False
+# Should we use real data based alignment, otherwize ideal alignment would be used
+use_alignment=False
+# heading from -150 to 150
+alignment_heading = 0
+# time for alignment in seconds
+alignment_time = 120
 # sensor errors
-acc_offset = 0.0001 # 2 [mg]
-gyr_drift = math.radians(10)/3600 # [deg/hour]
+acc_offset = 0.0001 # [m/s/s] e.g 1 [mg]
+gyr_drift = math.radians(10)/3600 # [deg/hour] e.g. 10 [deg/hour]
 
-#%%
-# alignemnt errors [deg]
-# 0 - assuming no errors
-psi = 0
-teta = 0
-gamma = 0
+"""
+    Config section end
+"""
 
 # %%
-ideal_system = nav_alg()
+ideal_system = nav_alg(obj_name="Идеальная система")
 
 acc_offset_analysis = nav_alg(obj_name="смещение 0 акселерометров")
 acc_offset_analysis.set_a_body(
     acc_offset,
     acc_offset,
-    0#acc_offset
+    acc_offset
 )
 acc_offset_analysis.set_coordinates(lat, lon)
 
@@ -57,7 +64,7 @@ gyro_drift_analysis= nav_alg(obj_name="дрейф гироскопов")
 gyro_drift_analysis.set_w_body(
     gyr_drift,
     gyr_drift,
-    0#gyr_drift
+    gyr_drift
 )
 gyro_drift_analysis.set_coordinates(lat, lon)
 
@@ -69,22 +76,50 @@ gyro_random_error_analysis = nav_alg(analysis="dynamic_gyro", time=sample_time, 
 gyro_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_GYR = SENSOR_DATA
-SENSOR_DATA_GYR.update({ "Gyr_X":np.deg2rad(SENSOR_DATA_GYR["Gyr_X"]-np.mean(SENSOR_DATA_GYR["Gyr_X"])) })
-SENSOR_DATA_GYR.update({ "Gyr_Y":np.deg2rad(SENSOR_DATA_GYR["Gyr_Y"]-np.mean(SENSOR_DATA_GYR["Gyr_Y"])) })
-SENSOR_DATA_GYR.update({ "Gyr_Z":np.deg2rad(SENSOR_DATA_GYR["Gyr_Z"]-np.mean(SENSOR_DATA_GYR["Gyr_Z"])) })
+if do_gen_white_noize:
+    SENSOR_DATA_GYR.update({ "Gyr_X": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_X"]), sample_time, data_frequency)})
+    SENSOR_DATA_GYR.update({ "Gyr_Y": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_Y"]), sample_time, data_frequency)})
+    SENSOR_DATA_GYR.update({ "Gyr_Z": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_Z"]), sample_time, data_frequency)})
+else:
+    SENSOR_DATA_GYR.update({ "Gyr_X":(SENSOR_DATA_GYR["Gyr_X"]-np.mean(SENSOR_DATA_GYR["Gyr_X"])) })
+    SENSOR_DATA_GYR.update({ "Gyr_Y":(SENSOR_DATA_GYR["Gyr_Y"]-np.mean(SENSOR_DATA_GYR["Gyr_Y"])) })
+    SENSOR_DATA_GYR.update({ "Gyr_Z":(SENSOR_DATA_GYR["Gyr_Z"]-np.mean(SENSOR_DATA_GYR["Gyr_Z"])) })
 
 gyro_random_error_analysis.sensor_data = SENSOR_DATA_GYR
-
 # %%
-acc_random_error_analysis = nav_alg(analysis="dynamic_acc", time=sample_time, frequency=data_frequency, obj_name="случайная ошибка акселерометров")
+acc_random_error_analysis = nav_alg(analysis="dynamic_acc", time=sample_time, frequency=data_frequency, obj_name="случайная ошибка акселерометров, выставка не проводится")
 acc_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_ACC = SENSOR_DATA
-SENSOR_DATA_ACC.update({ "Acc_X":(SENSOR_DATA_ACC["Acc_X"]-np.mean(SENSOR_DATA_ACC["Acc_X"])) })
-SENSOR_DATA_ACC.update({ "Acc_Y":(SENSOR_DATA_ACC["Acc_Y"]-np.mean(SENSOR_DATA_ACC["Acc_Y"])) })
-SENSOR_DATA_ACC.update({ "Acc_Z":(SENSOR_DATA_ACC["Acc_Z"]-np.mean(SENSOR_DATA_ACC["Acc_Z"])) })
+if do_gen_white_noize:
+    SENSOR_DATA_ACC.update({ "Acc_X": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_X"]), sample_time, data_frequency)})
+    SENSOR_DATA_ACC.update({ "Acc_Y": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_Y"]), sample_time, data_frequency)})
+    SENSOR_DATA_ACC.update({ "Acc_Z": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_Z"]), sample_time, data_frequency)})
+else:
+    SENSOR_DATA_ACC.update({ "Acc_X":(SENSOR_DATA_ACC["Acc_X"]-np.mean(SENSOR_DATA_ACC["Acc_X"])) })
+    SENSOR_DATA_ACC.update({ "Acc_Y":(SENSOR_DATA_ACC["Acc_Y"]-np.mean(SENSOR_DATA_ACC["Acc_Y"])) })
+    SENSOR_DATA_ACC.update({ "Acc_Z":(SENSOR_DATA_ACC["Acc_Z"]-np.mean(SENSOR_DATA_ACC["Acc_Z"])) })
 
 acc_random_error_analysis.sensor_data = SENSOR_DATA_ACC
+
+# %%
+acc_random_error_analysis_w_a = None
+if use_alignment:
+    acc_random_error_analysis_w_a = nav_alg(analysis="dynamic_acc", time=sample_time, frequency=data_frequency, obj_name="случайная ошибка акселерометров, выставка по ЗК")
+    acc_random_error_analysis_w_a.set_coordinates(lat, lon)
+
+    SENSOR_DATA_ACC_W_A = SENSOR_DATA
+    if do_gen_white_noize:
+        SENSOR_DATA_ACC_W_A.update({ "Acc_X": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_X"]), sample_time, data_frequency)})
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Y": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Y"]), sample_time, data_frequency)})
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Z": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Z"]), sample_time, data_frequency)})
+    else:
+        SENSOR_DATA_ACC_W_A.update({ "Acc_X":(SENSOR_DATA_ACC_W_A["Acc_X"]-np.mean(SENSOR_DATA_ACC_W_A["Acc_X"])) })
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Y":(SENSOR_DATA_ACC_W_A["Acc_Y"]-np.mean(SENSOR_DATA_ACC_W_A["Acc_Y"])) })
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Z":(SENSOR_DATA_ACC_W_A["Acc_Z"]-np.mean(SENSOR_DATA_ACC_W_A["Acc_Z"])) })
+
+    acc_random_error_analysis_w_a.sensor_data = SENSOR_DATA_ACC_W_A
+    acc_random_error_analysis_w_a.alignment(use_alignment,alignment_heading, alignment_time)
 
 # %%
 import threading
@@ -92,7 +127,8 @@ import threading
 def create_threads_and_run(*objects):
     threads = []
     for object in objects:
-        threads.append(threading.Thread(target=object.analysis))
+        if object != None:
+            threads.append(threading.Thread(target=object.analysis))
     
     for thread in threads:
         thread.start()
@@ -100,14 +136,16 @@ def create_threads_and_run(*objects):
         thread.join()
 
     for object in objects:
-        object.plots(size=plots_size, save=save_plots, additional_plots=show_additional_plots)
+        if object != None:
+            object.plots(size=plots_size, save=save_plots, additional_plots=show_additional_plots)
 
 
 create_threads_and_run(
-    #acc_offset_analysis,
+    acc_offset_analysis,
     #gyro_drift_analysis,
     #gyro_random_error_analysis,
-    acc_random_error_analysis,
+    #acc_random_error_analysis,
+    #acc_random_error_analysis_w_a,
     #ideal_system
     )
 

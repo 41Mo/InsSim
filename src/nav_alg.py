@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import cos as cos
+from numpy import cos as cos, ndarray
 from numpy import sin as sin
 from numpy import tan as tan
 import math as math
@@ -44,6 +44,8 @@ class nav_alg:
         self.is_coordinates_set = False
         self._w_body_input = np.array([0, 0, 0], dtype=np.double).reshape(3,1) # user input
         self._a_body_input = np.array([0, 0, 0], dtype=np.double).reshape(3,1) # user input
+        self.starting_point = 0
+        self.alignment_time=0
 
         # output
         self.spd_e = []
@@ -170,28 +172,28 @@ class nav_alg:
         self._coordinates()
 
     def calc_and_save(self):
-            self.calc_output()
+        self.calc_output()
 
-            # store current values
-            v_tmp = self._v_enu.copy()
-            c_tmp = self._coord.copy()
-            ang_tmp = self._rph_angles.copy()
-            self.spd_e.append(v_tmp[0])
-            self.spd_n.append(v_tmp[1])
-            self.lat.append(c_tmp[0])
-            self.lon.append(c_tmp[1])
-            self.pitch.append(ang_tmp[0])
-            self.roll.append(ang_tmp[1])
-            self.yaw.append(ang_tmp[2])
+        # store current values
+        v_tmp = self._v_enu.copy()
+        c_tmp = self._coord.copy()
+        ang_tmp = self._rph_angles.copy()
+        self.spd_e.append(v_tmp[0])
+        self.spd_n.append(v_tmp[1])
+        self.lat.append(c_tmp[0])
+        self.lon.append(c_tmp[1])
+        self.pitch.append(ang_tmp[0])
+        self.roll.append(ang_tmp[1])
+        self.yaw.append(ang_tmp[2])
 
-            a_tmp = self._a_enu.copy()
-            w_tmp = self._w_enu.copy()
-            self.a_e.append(a_tmp[0])
-            self.a_n.append(a_tmp[1])
-            self.a_u.append(a_tmp[2])
-            self.w_e.append(w_tmp[0])
-            self.w_n.append(w_tmp[1])
-            self.w_u.append(w_tmp[2])
+        a_tmp = self._a_enu.copy()
+        w_tmp = self._w_enu.copy()
+        self.a_e.append(a_tmp[0])
+        self.a_n.append(a_tmp[1])
+        self.a_u.append(a_tmp[2])
+        self.w_e.append(w_tmp[0])
+        self.w_n.append(w_tmp[1])
+        self.w_u.append(w_tmp[2])
 
     def prepare_data(self):
         self.spd_e.pop(0)
@@ -272,7 +274,7 @@ class nav_alg:
         self.prepare_data()
 
     def dynamic_analysis_acc(self):
-        for i in range(0,self.number_of_points):
+        for i in range(self.starting_point,self.number_of_points):
             self._a_body[0,0] = self.sensor_data["Acc_X"][i] + \
                 self.a_after_alignment_body[0,0]
             self._a_body[1,0] = self.sensor_data["Acc_Y"][i] + \
@@ -316,39 +318,50 @@ class nav_alg:
         if self.analysis_type == "dynamic_acc":
             self.dynamic_analysis_acc()
 
+    def alignment_matrix(self, ax_b:ndarray, ay_b:ndarray, az_b:ndarray, heading):
+        slice = self.alignment_time/self.dt
+        slice = int(slice)
+        self.starting_point = slice
+        ax_mean_60_sec = np.mean(ax_b[0:slice])
+        ay_mean_60_sec = np.mean(ay_b[0:slice])
+        az_mean_60_sec = np.mean(az_b[0:slice])
+        psi = heading
 
-    def alignment(self, psi=0, teta=0, gamma=0):
-        def alignment_matrix(psi, teta, gamma):
-            psi = np.deg2rad(psi)
-            teta = np.deg2rad(teta)
-            gamma = np.deg2rad(gamma)
-            sp = np.sin(psi)
-            st = np.sin(teta)
-            sg = np.sin(gamma)
-            cp = np.cos(psi)
-            ct = np.cos(teta)
-            cg = np.cos(gamma)
+        sp = np.sin(psi)
+        st = ay_mean_60_sec/self.G
+        sg = -1*ax_mean_60_sec/math.sqrt(ax_mean_60_sec**2 + az_mean_60_sec**2)
 
-            a11 = cp*cg + sp*st*sg
-            a12 = sp*ct
-            a13 = cp*sg - sp*st*cg
-            a21 = -sp*cg + cp*st*sg
-            a22 = cp*ct
-            a23 = -sp*sg - cp*st*cg
-            a31 = -ct*sg
-            a32 = st
-            a33 = ct*cg
+        cp = np.cos(psi)
+        ct = math.sqrt(ax_mean_60_sec**2 + az_mean_60_sec**2)/self.G
+        cg = az_mean_60_sec/math.sqrt(ax_mean_60_sec**2 + az_mean_60_sec**2)
 
-            # body_enu matrix
-            C_body_enu = np.array([
-                [a11, a12, a13],
-                [a21, a22, a23],
-                [a31, a32, a33]
-            ])
+        a11 = cp*cg + sp*st*sg
+        a12 = sp*ct
+        a13 = cp*sg - sp*st*cg
+        a21 = -sp*cg + cp*st*sg
+        a22 = cp*ct
+        a23 = -sp*sg - cp*st*cg
+        a31 = -ct*sg
+        a32 = st
+        a33 = ct*cg
 
-            # enu to body matrix
-            return C_body_enu.transpose(),C_body_enu
+        # body_enu matrix
+        C_body_enu = np.array([
+            [a11, a12, a13],
+            [a21, a22, a23],
+            [a31, a32, a33]
+        ])
 
+        # enu to body matrix
+        return C_body_enu.transpose(),C_body_enu
+
+
+    def alignment(self, based_on_real_data=False, heading=0, alignment_time=60):
+        """
+            heading in degrees from -150 to 150
+        """
+
+        self.alignment_time = alignment_time
 
         # assuming we are standing steel
         a_enu = np.array([[0],[0],[self.G]])
@@ -359,15 +372,31 @@ class nav_alg:
         ]
         )
 
-        C_enu_body,C_body_enu = alignment_matrix(psi, teta, gamma)
+        C_body_enu:ndarray
+        C_enu_body:ndarray
+        if based_on_real_data:
+            if logger.isEnabledFor(logging.INFO):
+                logger.info(f'Alignment based on real data')
+            math.radians(heading)
+            C_enu_body,C_body_enu = self.alignment_matrix(
+                self.sensor_data["Acc_X"],
+                self.sensor_data["Acc_Y"],
+                self.sensor_data["Acc_Z"],
+                heading
+            )
+            self._tm_body_enu = C_body_enu.copy()
+        else:
+            if logger.isEnabledFor(logging.INFO):
+                logger.info(f'Ideal alignment')
+            # assuming ideal alignment
+            C_body_enu = self._tm_body_enu
+            C_enu_body = C_body_enu.transpose()
+
         # re-project vect
         self.a_after_alignment_body = C_enu_body @ a_enu
         self.w_after_alignment_body = C_enu_body @ w_enu
-        self._tm_body_enu = C_body_enu.copy()
         self.is_aligned = True
 
-        if logger.isEnabledFor(logging.INFO):
-            logger.info(f'Alignment passed\n')
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f'a_body: {self.a_after_alignment_body}\n')
             logger.debug(f'w_body: {self.w_after_alignment_body}\n')
