@@ -5,6 +5,8 @@ from numpy import cos as cos
 from numpy import sin as sin
 from numpy import tan as tan
 import math as math
+import logging
+logger = logging.getLogger(__name__)
 class nav_alg:
 
     # Earth parameters
@@ -59,13 +61,19 @@ class nav_alg:
         self.w_u = []
     def set_a_body(self, ax, ay, az):
         self._a_body_input=np.array([ax, ay, az]).reshape(3,1)
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(f'Object: {self.__name__}\nA_body setup:\n {self._a_body_input}')
 
     def set_w_body(self, wx, wy, wz):
         self._w_body_input=np.array([wx, wy, wz]).reshape(3,1)
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(f'Object: {self.__name__}\nW_body setup:\n {self._w_body_input}')
 
     def set_coordinates(self, lat, lon):
         self._coord = np.array([np.deg2rad(lat), np.deg2rad(lon)]).reshape(2,1)
         self.is_coordinates_set = True
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(f'Object: {self.__name__}\nCoordinates setup:\n {self._coord}')
 
     def _puasson_equation(self):
         wbx = self._w_body[0]
@@ -90,6 +98,8 @@ class nav_alg:
         ], dtype=np.double)
 
         self._tm_body_enu = C + (C @ w_body  - w_enu @ C) * self.dt
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'C_body_enu\n{self._tm_body_enu}')
 
     def _euler_angles(self):
         C = self._tm_body_enu
@@ -102,10 +112,14 @@ class nav_alg:
         self._rph_angles[1] = -np.arctan(C[0,2]/C[2,2])
         # psi
         self._rph_angles[2] = np.arctan(C[1,0]/C[1,1])
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'Roll,Pitch,Heading\n {self._rph_angles}')
 
     def _acc_body_enu(self):
         # transformation from horisontal vector to veritical vector
         self._a_enu = (self._tm_body_enu@self._a_body)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'a_enu\n{self._a_enu}')
 
     def _coordinates(self):
         lin_spd = self._v_enu
@@ -118,6 +132,8 @@ class nav_alg:
         self._coord[0] = coords[0] + (v_n/(self.R+self._H))*self.dt
         # lambda
         self._coord[1] = coords[1] + (v_e/((self.R+self._H) * cos(coords[0]))) * self.dt
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'phi,lambda\n{self._coord}')
 
     def _ang_velocity_body_enu(self):
         spd = self._v_enu
@@ -126,6 +142,8 @@ class nav_alg:
         self._w_enu[0] = -spd[1]/(self.R+self._H) # wox <=> we
         self._w_enu[1] = spd[0]/(self.R+self._H) + self.U * cos(coord[0]) # woy <=> wn
         self._w_enu[2] = spd[0]/(self.R+self._H)*tan(coord[0]) + self.U * sin(coord[0]) # woz <=> wup
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'w_enu\n{self._w_enu}')
     
     def _speed(self):
         w = self._w_enu
@@ -139,15 +157,17 @@ class nav_alg:
         # v_up. Unstable channel cant be calculated, so assuming 0
         self._v_enu[2] = 0
         #self._v_enu[2] = v[2] + (a[2] + (self.U*cos(coord[1])+w[1])*v[0] - v[1]*w[0] - 9.81)*self.dt
-    def calc_output(self):
-            # calculate values on each itaration
-            self._acc_body_enu()
-            self._speed()
-            self._ang_velocity_body_enu()
-            self._puasson_equation()
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'v_enu\n{self._v_enu}')
 
-            self._euler_angles()
-            self._coordinates()
+    def calc_output(self):
+        # calculate values on each itaration
+        self._acc_body_enu()
+        self._speed()
+        self._ang_velocity_body_enu()
+        self._puasson_equation()
+        self._euler_angles()
+        self._coordinates()
 
     def calc_and_save(self):
             self.calc_output()
@@ -199,6 +219,11 @@ class nav_alg:
             self._a_body[2,0] = self._a_body_input[2,0] + \
                 self.a_after_alignment_body[2,0]
 
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Iteration: {i}')
+                logger.debug(f'w_body\n{self._w_body}')
+                logger.debug(f'a_body\n{self._a_body}')
+
             self.calc_and_save()
         self.prepare_data()
 
@@ -217,6 +242,10 @@ class nav_alg:
                 self.a_after_alignment_body[1,0]
             self._a_body[2,0] = self.sensor_data["Gyr_Z"][i] + \
                 self.a_after_alignment_body[2,0]
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Iteration: {i}')
+                logger.debug(f'w_body\n{self._w_body}')
+                logger.debug(f'a_body\n{self._a_body}')
             
             self.calc_and_save()
         self.prepare_data()
@@ -234,6 +263,11 @@ class nav_alg:
             self._a_body[1,0] = self.a_after_alignment_body[1,0]
             self._a_body[2,0] = self.a_after_alignment_body[2,0]
 
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Iteration: {i}')
+                logger.debug(f'w_body\n{self._w_body}')
+                logger.debug(f'a_body\n{self._a_body}')
+
             self.calc_and_save()
         self.prepare_data()
 
@@ -250,6 +284,11 @@ class nav_alg:
             self._w_body[1,0] = self.w_after_alignment_body[1,0]
             self._w_body[2,0] = self.w_after_alignment_body[2,0]
 
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Iteration: {i}')
+                logger.debug(f'w_body\n{self._w_body}')
+                logger.debug(f'a_body\n{self._a_body}')
+
             self.calc_and_save()
         self.prepare_data()
 
@@ -258,8 +297,9 @@ class nav_alg:
             run analysis
         """
         if not self.is_aligned:
+            if logger.isEnabledFor(logging.INFO):
+                logger.info("Alignment start")
             self.alignment()
-            print("aligned with ideal matrix\n")
 
         if not self.is_coordinates_set:
             print(f"Coordinates not seted up, going with lat: {self._coord[0]}, lon: {self._coord[1]}\n")
@@ -325,6 +365,13 @@ class nav_alg:
         self.w_after_alignment_body = C_enu_body @ w_enu
         self._tm_body_enu = C_body_enu.copy()
         self.is_aligned = True
+
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(f'Alignment passed\n')
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'a_body: {self.a_after_alignment_body}\n')
+            logger.debug(f'w_body: {self.w_after_alignment_body}\n')
+            logger.debug(f'C_body_enu: {self._tm_body_enu}')
 
     def plots(self, size:Tuple=(140,170), save:bool=False, title:str="", additional_plots:bool=False):
         """
@@ -411,7 +458,7 @@ class nav_alg:
                 fig.set_size_inches(size)
                 fig.suptitle(title)
 
-                x_time = self.sensor_data["Gyr_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
+                x_time = np.linspace(0, len(self.sensor_data["Gyr_X"])*self.dt, len(self.sensor_data["Gyr_X"]))
 
                 axs[0].plot(x_time, np.rad2deg(self.sensor_data["Gyr_X"]))
                 axs[0].set_ylabel('wx_b')
@@ -429,7 +476,7 @@ class nav_alg:
                 fig.set_size_inches(size)
                 fig.suptitle(title)
 
-                x_time = self.sensor_data["Acc_X_time"]#np.linspace(0, len(self.sensor_data["Gyr_X"]))
+                x_time = np.linspace(0, len(self.sensor_data["Acc_X"])*self.dt, len(self.sensor_data["Acc_X"]))
                 axs[0].plot(x_time, self.sensor_data["Acc_X"])
                 axs[0].set_ylabel('ax_b')
 

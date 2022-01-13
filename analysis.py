@@ -7,6 +7,16 @@ import src.nav_alg
 src.nav_alg = reload(src.nav_alg)
 from src.nav_alg import nav_alg
 from src.csv_parser import get_data_from_csv
+
+import logging
+logging.basicConfig(
+    format='%(module)s:%(levelname)s:%(message)s',
+    filename='logs/Run.log',
+    filemode="w",
+    encoding='utf-8',
+    level=logging.WARNING)
+logging.getLogger('src.nav_alg').setLevel(logging.INFO)
+
 #%%
 # e.g Moscow
 lat = 0#55.75
@@ -16,6 +26,11 @@ lon = 0#37.61
 data_file = "csv_data/Sensors_and_orientation.csv"
 sample_time = 1800
 data_frequency = 100
+save_plots = False # plots would be saved to images folder
+plots_size = (297,210) # plots height,width in mm
+# additional plots such as wx,wy,wz,ax,ay,az in both body and enu would be shown
+show_additional_plots = True
+
 # sensor errors
 acc_offset = 0.0001 # 2 [mg]
 gyr_drift = math.radians(10)/3600 # [deg/hour]
@@ -74,9 +89,7 @@ acc_random_error_analysis.sensor_data = SENSOR_DATA_ACC
 # %%
 import threading
     
-def crete_threads_and_run_1(*objects):
-    #threads:List[threading.Thread] = []
-    #object:nav_alg = None
+def create_threads_and_run(*objects):
     threads = []
     for object in objects:
         threads.append(threading.Thread(target=object.analysis))
@@ -87,13 +100,13 @@ def crete_threads_and_run_1(*objects):
         thread.join()
 
     for object in objects:
-        object.plots(size=(297,210), save=False, additional_plots=True)
+        object.plots(size=plots_size, save=save_plots, additional_plots=show_additional_plots)
 
 
-crete_threads_and_run_1(
-    acc_offset_analysis,
-    gyro_drift_analysis,
-    gyro_random_error_analysis,
+create_threads_and_run(
+    #acc_offset_analysis,
+    #gyro_drift_analysis,
+    #gyro_random_error_analysis,
     acc_random_error_analysis,
     #ideal_system
     )
