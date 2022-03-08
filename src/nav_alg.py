@@ -303,8 +303,8 @@ class nav_alg:
                 logger.info("Alignment start")
             self.alignment()
 
-        if not self.is_coordinates_set:
-            print(f"Coordinates not seted up, going with lat: {self._coord[0]}, lon: {self._coord[1]}\n")
+        if logger.isEnabledFor(logging.INFO):
+            logger.info(f"Initial coordinates. lat: {self._coord[0]}, lon: {self._coord[1]}")
 
         if self.analysis_type == "static":
             self.static_analysis()
@@ -423,34 +423,47 @@ class nav_alg:
         if title == "" and self.__name__ != "":
             title = self.__name__
 
-        fig,axs = plt.subplots(7,1,sharex=True,constrained_layout=True)
+        fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
         fig.set_size_inches(size)
-        fig.suptitle(title)
+        #fig.suptitle(title)
 
         axs[0].plot(np.linspace(0, len(self.pitch)*self.dt, len(self.pitch)), np.rad2deg(self.pitch)*60, label="roll")
         axs[0].set_ylabel('$\\theta$, угл мин')
         axs[1].plot(np.linspace(0, len(self.roll)*self.dt, len(self.roll)), np.rad2deg(self.roll)*60, label="pitch")
         axs[1].set_ylabel('$\gamma$, угл мин')
-
         axs[2].plot(np.linspace(0, len(self.yaw)*self.dt, len(self.yaw)), np.rad2deg(self.yaw)*60, label="yaw")
         axs[2].set_ylabel('$\psi$, угл мин')
+        axs[2].set_xlabel("время, с")
 
-        axs[3].plot(np.linspace(0, len(self.spd_e)*self.dt, len(self.spd_e)), self.spd_e, label="v_e")
-        axs[3].set_ylabel('$V_E$, м/c')
+        if save:
+            plt.savefig("./images/"+"angles"+title+".jpg", bbox_inches='tight')
+        plt.show()
 
-        axs[4].plot(np.linspace(0, len(self.spd_n)*self.dt, len(self.spd_n)), self.spd_n, label="v_n")
-        axs[4].set_ylabel('$V_N$, м/c')
+        fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
+        fig.set_size_inches(size)
 
-        axs[5].plot(np.linspace(0, len(self.lat)*self.dt, len(self.lat)), np.rad2deg(self.lat)*111138.5, label="lat")
-        axs[5].set_ylabel('$\\varphi$, м')
+        axs[0].plot(np.linspace(0, len(self.spd_e)*self.dt, len(self.spd_e)), self.spd_e, label="v_e")
+        axs[0].set_ylabel('$V_E$, м/c')
+        axs[1].plot(np.linspace(0, len(self.spd_n)*self.dt, len(self.spd_n)), self.spd_n, label="v_n")
+        axs[1].set_ylabel('$V_N$, м/c')
+        axs[1].set_xlabel("время, с")
 
-        axs[6].plot(np.linspace(0, len(self.lon)*self.dt, len(self.lon)), np.rad2deg(self.lon)*111138.5, label="lon")
-        axs[6].set_xlabel("время, с")
-        axs[6].set_ylabel('$\lambda$, м')
+        if save:
+            plt.savefig("./images/"+"speed"+title+".jpg", bbox_inches='tight')
+        plt.show()
+
+        fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
+        fig.set_size_inches(size)
+
+        axs[0].plot(np.linspace(0, len(self.lat)*self.dt, len(self.lat)), np.rad2deg(self.lat)*111138.5, label="lat")
+        axs[0].set_ylabel('$\\varphi$, м')
+        axs[1].plot(np.linspace(0, len(self.lon)*self.dt, len(self.lon)), np.rad2deg(self.lon)*111138.5, label="lon")
+        axs[1].set_ylabel('$\lambda$, м')
+        axs[1].set_xlabel("время, с")
 
 
         if save:
-            plt.savefig("./images/"+title+".jpg", bbox_inches='tight')
+            plt.savefig("./images/"+"coord"+title+".jpg", bbox_inches='tight')
         plt.show()
 
         # additional
