@@ -1,7 +1,7 @@
 from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import cos as cos, ndarray
+from numpy import cos as cos, ndarray, roll
 from numpy import sin as sin
 from numpy import tan as tan
 import math as math
@@ -20,6 +20,7 @@ class nav_alg:
             time [seconds]
         """
         # input
+        self.frequency = frequency
         self.dt = 1/frequency
         self.number_of_points = int(time / self.dt)
         self.analysis_type = analysis
@@ -46,6 +47,7 @@ class nav_alg:
         self._a_body_input = np.array([0, 0, 0], dtype=np.double).reshape(3,1) # user input
         self.starting_point = 0
         self.alignment_time=0
+        self.a_pre = 0
 
         # output
         self.spd_e = []
@@ -354,9 +356,41 @@ class nav_alg:
 
         # enu to body matrix
         return C_body_enu.transpose(),C_body_enu
+    
+    def hw_pre(self, heading, roll, pitch):
+        psi = math.radians(heading)
+        teta= math.radians(pitch);
+        gamma= math.radians(roll);
 
+        sp = np.sin(psi)
+        st = np.sin(teta)
+        sg = np.sin(gamma)
 
-    def alignment(self, based_on_real_data=False, heading=0, alignment_time=60):
+        cp = np.cos(psi)
+        ct = np.cos(teta)
+        cg = np.cos(gamma)
+
+        a11 = cp*cg + sp*st*sg
+        a12 = sp*ct
+        a13 = cp*sg - sp*st*cg
+        a21 = -sp*cg + cp*st*sg
+        a22 = cp*ct
+        a23 = -sp*sg - cp*st*cg
+        a31 = -ct*sg
+        a32 = st
+        a33 = ct*cg
+
+        # body_enu matrix
+        C_o_body= np.array([
+            [a11, a12, a13],
+            [a21, a22, a23],
+            [a31, a32, a33]
+        ])
+
+        # enu to body matrix
+        return C_o_body,C_o_body.transpose()
+
+    def alignment(self, based_on_real_data=False, heading=0, alignment_time=60, pitch=0, roll=0):
         """
             heading in degrees from -150 to 150
         """
@@ -374,15 +408,32 @@ class nav_alg:
 
         C_body_enu:ndarray
         C_enu_body:ndarray
+
+        if roll != 0 and pitch != 0:
+            C_o_b, C_b_o = self.hw_pre(heading, roll, pitch)
+            a_pre = C_o_b @ a_enu
+            self.a_pre = a_pre
+            #self.w_pre = C_o_b @ w_enu
+            self.sensor_data["Acc_X"] = [z+a_pre[0] for z in self.sensor_data["Acc_X"] ]
+            self.sensor_data["Acc_Y"] = [z+a_pre[1] for z in self.sensor_data["Acc_Y"] ]
+            self.sensor_data["Acc_Z"] = [z+a_pre[2] for z in self.sensor_data["Acc_Z"] ]
+
+            #plt.plot(np.linspace(0, self.frequency, len(self.sensor_data["Acc_X"])), self.sensor_data["Acc_X"])
+            #plt.show()                                                            
+            #plt.plot(np.linspace(0, self.frequency, len(self.sensor_data["Acc_Y"])), self.sensor_data["Acc_Y"])
+            #plt.show()                                                            
+            #plt.plot(np.linspace(0, self.frequency, len(self.sensor_data["Acc_Z"])), self.sensor_data["Acc_Z"])
+            #plt.show()
+
         if based_on_real_data:
             if logger.isEnabledFor(logging.INFO):
                 logger.info(f'Alignment based on real data')
-            math.radians(heading)
+            psi = math.radians(heading)
             C_enu_body,C_body_enu = self.alignment_matrix(
                 self.sensor_data["Acc_X"],
                 self.sensor_data["Acc_Y"],
                 self.sensor_data["Acc_Z"],
-                heading
+                psi
             )
             self._tm_body_enu = C_body_enu.copy()
         else:
