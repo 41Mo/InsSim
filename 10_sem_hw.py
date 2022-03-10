@@ -10,15 +10,6 @@ from src.nav_alg import nav_alg
 from src.csv_parser import get_data_from_csv
 from src.white_noize_gen import gen_white_noize
 
-import logging
-logging.basicConfig(
-    format='%(module)s:%(levelname)s:%(message)s',
-    filename='logs/Run.log',
-    filemode="w",
-    encoding='utf-8',
-    level=logging.WARNING)
-logging.getLogger('src.nav_alg').setLevel(logging.INFO)
-
 #%%
 """
     Config section
@@ -34,7 +25,6 @@ save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
 ## alignment
-# heading from -150 to 150
 heading = 180
 roll = -2
 pitch = 2
@@ -78,8 +68,8 @@ plt.plot(np.linspace(0, data_frequency, len(ACC_Z)), ACC_Z)
 hw.alignment(True, heading, alignment_time,pitch, roll)
 hw._euler_angles()
 
-c_roll = hw._rph_angles[0]
-c_pitch = hw._rph_angles[1]
+c_roll = hw._rph_angles[1]
+c_pitch = hw._rph_angles[0]
 
 #print("Roll: ", c_roll,
 # "Pitch", c_pitch,
@@ -93,9 +83,9 @@ print(
 "Delta roll:", math.degrees(c_roll_err), "\n",
 )
 
-abz = hw.G#hw.a_pre[2]
-abx = 0#hw.a_pre[0]
-aby = 0#hw.a_pre[1]
+abz = hw.G #hw.a_pre[2]
+abx = 0 #hw.a_pre[0]
+aby = 0 #hw.a_pre[1]
 dabz = 0
 f_pitch_err = acc_offset_y / math.sqrt(math.pow(hw.G,2) - math.pow(aby,2))
 f_roll_err = ((abx * dabz) - (acc_offset_x * abz)) / (pow(abx,2) + pow(abz,2))
