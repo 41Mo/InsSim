@@ -3,7 +3,7 @@
 class Nav {
 public:
     //constructor
-    Nav() {};
+    Nav();
     // destructor
     ~Nav() {};
 

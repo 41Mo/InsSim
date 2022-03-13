@@ -86,18 +86,25 @@ void Nav::aligment(float acc_x[], float acc_y[], float acc_z[], float heading, i
 	float ct = sqrt(pow(ax_mean, 2) + pow(az_mean, 2)) / G;
 	float cg = az_mean / sqrt(pow(ax_mean, 2) + pow(az_mean, 2));
 	
-	float a11 = cp * cg + sp * st * sg;
-	float a12 = sp * ct;
-	float a13 = cp * sg - sp * st * cg;
-	float a21 = - sp * cg + cp * st * sg;
-	float a22 = cp * ct;
-	float a23 = - sp * sg - cp * st * cg;
-	float a31 = - ct * sg;
-	float a32 = st;
-	float a33 = ct * cg;
+	c11 = cp * cg + sp * st * sg;
+	c12 = sp * ct;
+	c13 = cp * sg - sp * st * cg;
+	c21 = - sp * cg + cp * st * sg;
+	c22 = cp * ct;
+	c23 = - sp * sg - cp * st * cg;
+	c31 = - ct * sg;
+	c32 = st;
+	c33 = ct * cg;
 }
 
 void Nav::iter(vec_body acc, vec_body gyr)
 {
-	//stub
+	w_body = gyr;
+	a_body = acc;
+	acc_body_enu();
+	speed();
+	ang_velocity_body_enu();
+	puasson_equation();
+	euler_angles();
+	coordinates();
 }
