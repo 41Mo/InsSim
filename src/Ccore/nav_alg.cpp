@@ -1,6 +1,16 @@
 #include <math.h>
 #include "nav_alg.h"
 
+Nav::Nav() 
+{
+	w_enu.E = U * cos(phi);
+	w_enu.N = U * sin(phi);
+	w_enu.U = 0;
+	a_enu.E = 0;
+	a_enu.N = 0;
+	a_enu.U = G;
+}
+
 void Nav::puasson_equation() 
 {
 	c11 = c11 - dt * (c13 * w_body.Y + c31 * w_enu.N - c12 * w_body.Z - c21 * w_enu.U);
@@ -14,7 +24,7 @@ void Nav::puasson_equation()
 	c33 = c33 - dt * (c32 * w_body.X + c23 * w_enu.E - c31 * w_body.Y - c13 * w_enu.N);
 }
 
-float Nav::arithmetic_mean(float data[], int size)
+float arithmetic_mean(float data[], int size)
 {
 	float sum = 0;
 	for (int i = 0; i < size; ++i)
@@ -85,4 +95,9 @@ void Nav::aligment(float acc_x[], float acc_y[], float acc_z[], float heading, i
 	float a31 = - ct * sg;
 	float a32 = st;
 	float a33 = ct * cg;
+}
+
+void Nav::iter(vec_body acc, vec_body gyr)
+{
+	//stub
 }

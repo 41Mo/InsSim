@@ -13,8 +13,8 @@ public:
 	void speed();
 	void coordinates();
 	void ang_velocity_body_enu();
-	float arithmetic_mean(float data[], int size);
 	void aligment(float acc_x[], float acc_y[], float acc_z[], float heading, int size);
+	void iter(vec_body acc, vec_body gyr);
 private:
 	//Earth Parameters
 	const float R = 6378245.0;
@@ -35,8 +35,8 @@ private:
 	vec_enu v_enu = {0, 0, 0};
 
 	//Local variables
-	vec_enu w_enu = {0, 0, 0};
-	vec_enu a_enu = {0, 0, 0};
+	vec_enu w_enu;
+	vec_enu a_enu;
 	float teta = 0;
 	float gamma = 0;
 	float psi = 0;
