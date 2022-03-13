@@ -21,8 +21,5 @@ clean_obj:
 clean_bin:
 	rm -f ${BIN}
 
-clean: clean_obj
-	@echo "*.o clean"
-
-clean_all: clean_obj clean_bin
-	@echo "clean"
+clean: clean_obj clean_bin
+	@echo "all clean"
