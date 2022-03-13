@@ -1,14 +1,15 @@
 #include <math.h>
 #include "nav_alg.h"
 
-Nav::Nav() 
+Nav::Nav(float phi, float lambda, int frequency):
+phi(phi),
+lambda(lambda),
+frequency(frequency),
+dt(1/frequency)
 {
-	w_enu.E = U * cos(phi);
-	w_enu.N = U * sin(phi);
-	w_enu.U = 0;
-	a_enu.E = 0;
-	a_enu.N = 0;
-	a_enu.U = G;
+	// initial values for object on earth
+	w_enu = {0, U*cos(phi), U*sin(phi) };
+	a_enu = {0, 0, G};
 }
 
 void Nav::puasson_equation() 
@@ -22,16 +23,6 @@ void Nav::puasson_equation()
 	c31 = c31 - dt * (c21 * w_enu.E + c33 * w_body.Y - c11 * w_enu.N - c32 * w_body.Z);
 	c32 = c32 + dt * (c33 * w_body.X - c22 * w_enu.E + c12 * w_enu.N - c31 * w_body.Z);
 	c33 = c33 - dt * (c32 * w_body.X + c23 * w_enu.E - c31 * w_body.Y - c13 * w_enu.N);
-}
-
-float arithmetic_mean(float data[], int size)
-{
-	float sum = 0;
-	for (int i = 0; i < size; ++i)
-	{
-		sum += data[i];
-	}
-	return sum / size;
 }
 
 void Nav::euler_angles()
@@ -71,20 +62,15 @@ void Nav::ang_velocity_body_enu()
 	w_enu.U = (v_enu.E / (R + H)) * tan(phi) + U * sin(phi);
 }
 
-void Nav::aligment(float acc_x[], float acc_y[], float acc_z[], float heading, int size)
+void Nav::aligment(float roll, float pitch, float yaw)
 {
-	float ax_mean = arithmetic_mean(acc_x, size);
-	float ay_mean = arithmetic_mean(acc_y, size);
-	float az_mean = arithmetic_mean(acc_z, size);
-	float psi = heading;
+	float psi = yaw;
+	float teta = pitch;
+	float gamma = roll;
 	
-	float sp = sin(psi);
-	float st = ay_mean / G;
-	float sg = -1 * ax_mean / sqrt(pow(ax_mean, 2) + pow(az_mean, 2));
+	float sp = sin(psi); float st = sin(teta); float sg = sin(gamma);
 	
-	float cp = cos(psi);
-	float ct = sqrt(pow(ax_mean, 2) + pow(az_mean, 2)) / G;
-	float cg = az_mean / sqrt(pow(ax_mean, 2) + pow(az_mean, 2));
+	float cp = cos(psi); float ct = cos(teta); float cg = cos(gamma);
 	
 	c11 = cp * cg + sp * st * sg;
 	c12 = sp * ct;
