@@ -1,0 +1,3 @@
+[submodule "modules/libnav"]
+	path = modules/libnav
+	url = https://github.com/41Mo/libnav.git
