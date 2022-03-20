@@ -4,7 +4,7 @@
 class Nav {
 public:
     // constructor
-    Nav(float phi, float lambda, int frequency);
+    Nav();
     // destructor
     ~Nav() {};
 
@@ -16,6 +16,7 @@ public:
 	void ang_velocity_body_enu();
 	void aligment(float roll, float pitch, float yaw);
 	void iter(vec_body acc, vec_body gyr);
+	void init(float phi, float lambda, int frequency);
 private:
 	// Earth constants
 	const float R{6378245.0};

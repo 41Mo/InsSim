@@ -1,15 +1,15 @@
 #include <math.h>
 #include "nav_alg.h"
 
-Nav::Nav(float phi, float lambda, int frequency):
-phi(phi),
-lambda(lambda),
-frequency(frequency),
-dt(1/frequency)
+Nav::Nav()
 {
-	// initial values for object on earth
-	w_enu = {0, U*cos(phi), U*sin(phi) };
-	a_enu = {0, 0, G};
+}
+
+void Nav::init(float phi, float lambda, int frequency) {
+	Nav::phi = phi;
+	Nav::lambda = lambda;
+	Nav::frequency = frequency;
+	dt = 1/frequency;
 }
 
 void Nav::puasson_equation() 
@@ -46,11 +46,12 @@ void Nav::speed()
 	v_enu.N = v_enu.N + (a_enu.N + (U * sin(phi) + w_enu.U) * v_enu.E) * dt;
 
 }
+
 void Nav::coordinates()
 {
-	//Latitude
+	// Latitude
 	phi = phi + (v_enu.N / (R + H)) * dt;
-	//Longitude
+	// Longitude
 	lambda = lambda + (v_enu.E / ((R + H) * cos(phi))) * dt;
 
 }
