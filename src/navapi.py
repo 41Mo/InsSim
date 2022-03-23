@@ -8,7 +8,7 @@ from numpy import array as array
 import math
 faulthandler.enable()
 
-api_so = CDLL("modules/test/lib/libnavapi.so")
+api_so = CDLL("modules/libnav/lib/libnavapi.so")
 
 class vec_body(Structure):
         _fields_ = [("X", c_float),
