@@ -111,12 +111,17 @@ G_Z = w_z;
 A_X = acc_offset_x+a_x
 A_Y = acc_offset_y+a_y
 A_Z = a_z
-#%%
-na.plot_errors(acc_offset_x, acc_offset_y, gyr_drift_x, gyr_drift_y, G, 6378245.0, )
 
 #%%
 na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
+
+#%%
+na.plot_err_formula(acc_offset_x, acc_offset_y, gyr_drift_x, gyr_drift_y, G, 6378245.0, )
+#%%
+na.plots(na.DATA)
+#%%
+na.plot_err_model()
 #%%
 """
 c_roll = hw._rph_angles[1]

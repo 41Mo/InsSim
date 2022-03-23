@@ -58,6 +58,8 @@ class navapi(object):
         self.time = time
         self.dt = 1/frequency
         self.points = time*frequency
+        self.roll = roll; self.pitch = pitch; self.yaw = yaw;
+        self.lat = lat; self.lon=lon;
         api_so.api_init(self.obj, roll,pitch,yaw, lat,lon, time,frequency)
 
     def loop(self):
@@ -104,7 +106,6 @@ class navapi(object):
     def main(self):
         self.loop()
         self.DATA = self.get_data()
-        self.plots(self.DATA)
 
     def set_sens_data(self, a_x, a_y, a_z, g_x, g_y, g_z):
         '''
@@ -141,7 +142,7 @@ class navapi(object):
     def get_data(self):
         return api_so.api_get_data(self.obj)
 
-    def plot_errors(self, dax, day, dwx, dwy, G, R):
+    def plot_err_formula(self, dax, day, dwx, dwy, G, R):
         cos = math.cos; sin = math.sin;
         Phiox = []; Phioy = []; Dvx = []; Dvy = [];
         nu = math.sqrt(G/R)
@@ -164,6 +165,23 @@ class navapi(object):
         axs[3].set_ylabel('$Voy$')
         axs[3].set_xlabel("время, с")
 
+    def plot_err_model(self):
+        d = self.DATA
+        FloatArrType = c_float * self.points
+        roll = FloatArrType(); pitch = FloatArrType(); yaw = FloatArrType()
+        v_e = FloatArrType(); v_n = FloatArrType(); lat = FloatArrType()
+        lon = FloatArrType()
+        for i in range(0, self.points):
+            roll[i] = d.roll[i] - self.roll
+            pitch[i] = d.pitch[i] - self.pitch
+            yaw[i] = d.yaw[i] - self.yaw
+            v_e[i] = d.v_e[i]
+            v_n[i] = d.v_n[i]
+            lat[i] = d.lat[i] - self.lat
+            lon[i] = d.lon[i] - self.lon
+        self.Err = OUT(roll ,pitch, yaw, lat, lon, v_e, v_n)
+        self.plots(self.Err)
+
     def plots(self, data, size:Tuple=(140,170), save:bool=False, title:str="", additional_plots:bool=False):
         """
         generate 1 plot with 7 subplots
@@ -174,7 +192,6 @@ class navapi(object):
         - a_e, a_n, a_up
         - w_e, w_n, w_up
         """
-
         roll =  data.roll[:self.points]
         pitch = data.pitch[:self.points]
         yaw = data.yaw[:self.points]
