@@ -1,3 +1,6 @@
 [submodule "modules/libnav"]
 	path = modules/libnav
 	url = https://github.com/41Mo/libnav.git
+[submodule "modules/gnuplot-iostream"]
+	path = modules/gnuplot-iostream
+	url = git@github.com:dstahlke/gnuplot-iostream.git

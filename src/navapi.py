@@ -1,11 +1,8 @@
 from ctypes import *
 import faulthandler
-from typing import Tuple
-import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-from numpy import float64, linspace as lp
-from numpy import array as array
+from numpy import array as array, float64
 import math
+from plots import plots
 faulthandler.enable()
 
 api_so = CDLL("modules/libnav/lib/libnavapi.so")
@@ -142,28 +139,6 @@ class navapi(object):
     def get_data(self):
         return api_so.api_get_data(self.obj)
 
-    def plot_err_formula(self, dax, day, dwx, dwy, G, R):
-        cos = math.cos; sin = math.sin;
-        Phiox = []; Phioy = []; Dvx = []; Dvy = [];
-        nu = math.sqrt(G/R)
-        x_axis = lp(0, self.time, self.points)
-        for t in x_axis:
-            Phiox.append((2*day)/G * cos(nu*t) - day/G - dwx*math.sin(nu*t)/nu)
-            Phioy.append(dax/G - dwy*(sin(nu*t)/nu))
-            Dvx.append(dwy*R*(1-cos(nu*t)))
-            Dvy.append(-dwx*R*(1-cos(nu*t)))
-        
-        fig,axs = plt.subplots(4,1,sharex=True,constrained_layout=True)
-        
-        axs[0].plot(x_axis, Phiox, label="roll")
-        axs[0].set_ylabel('$\\varphi_y$')
-        axs[1].plot(x_axis,  Phioy, label="pitch")
-        axs[1].set_ylabel('$\\varphi_x$')
-        axs[2].plot(x_axis, Dvx, label="yaw")
-        axs[2].set_ylabel('$Vox$')
-        axs[3].plot(x_axis, Dvy, label="yaw")
-        axs[3].set_ylabel('$Voy$')
-        axs[3].set_xlabel("время, с")
 
     def plot_err_model(self):
         d = self.DATA
@@ -180,70 +155,8 @@ class navapi(object):
             lat[i] = d.lat[i] - self.lat
             lon[i] = d.lon[i] - self.lon
         self.Err = OUT(roll ,pitch, yaw, lat, lon, v_e, v_n)
-        self.plots(self.Err)
+        plots(self.Err)
 
-    def plots(self, data, size:Tuple=(140,170), save:bool=False, title:str="", additional_plots:bool=False):
-        """
-        generate 1 plot with 7 subplots
-        - orientation angles
-        - speed
-        - coordinates
-        additional debug plots:
-        - a_e, a_n, a_up
-        - w_e, w_n, w_up
-        """
-        roll =  data.roll[:self.points]
-        pitch = data.pitch[:self.points]
-        yaw = data.yaw[:self.points]
-        v_e = data.v_e[:self.points]
-        v_n = data.v_n[:self.points]
-        lat = data.lat[:self.points]
-        lon = data.lon[:self.points]
-
-
-
-        size = (size[0]/25.4, size[1]/25.4)
-
-        fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
-        fig.set_size_inches(size)
-        x_axis = lp(0, self.time, self.points)
-        axs[0].plot(x_axis, roll, label="roll")
-        axs[0].set_ylabel('$\\theta$, угл мин')
-        axs[1].plot(x_axis,  pitch, label="pitch")
-        axs[1].set_ylabel('$\gamma$, угл мин')
-        axs[2].plot(x_axis, yaw, label="yaw")
-        axs[2].set_ylabel('$\psi$, угл мин')
-        axs[2].set_xlabel("время, с")
-        if save:
-            plt.savefig("./images/"+"angles"+title+".jpg", bbox_inches='tight')
-        plt.show()
-
-        fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
-        fig.set_size_inches(size)
-
-        axs[0].plot(x_axis, v_e, label="v_e")
-        axs[0].set_ylabel('$V_E$, м/c')
-        axs[1].plot(x_axis, v_n, label="v_n")
-        axs[1].set_ylabel('$V_N$, м/c')
-        axs[1].set_xlabel("время, с")
-
-        if save:
-            plt.savefig("./images/"+"speed"+title+".jpg", bbox_inches='tight')
-        plt.show()
-
-        fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
-        fig.set_size_inches(size)
-
-        axs[0].plot(x_axis, lat,label="lat")
-        axs[0].set_ylabel('$\\varphi$, м')
-        axs[1].plot(x_axis, lon,label="lon")
-        axs[1].set_ylabel('$\lambda$, м')
-        axs[1].set_xlabel("время, с")
-
-
-        if save:
-            plt.savefig("./images/"+"coord"+title+".jpg", bbox_inches='tight')
-        plt.show()
 
 ''' example
 t = navapi()
