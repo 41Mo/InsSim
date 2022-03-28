@@ -12,7 +12,7 @@
 // This must be defined before the first time that "gnuplot-iostream.h" is included.
 #define GNUPLOT_ENABLE_PTY
 #include "gnuplot-iostream.h"
-typedef std::vector<std::pair<int64_t, float> > vecf;
+typedef std::vector<float> vecf;
 using namespace std;
 
 class UserBreak
@@ -40,11 +40,14 @@ int main(void)
 	Gnuplot spd;
 	Gnuplot coord;
 
+    coord << "set yrange [-180:180]\n set";
+	angles << "set yrange [-360:360]\n";
+	spd << "set yrange [-1:]\n";
 	vecf lat; vecf lon; vecf roll; vecf pitch; vecf yaw; vecf ve; vecf vn;
 
 	UserBreak ub;
 	std::thread thread(&UserBreak::input_loop, &ub);
-	//cout << string(79, '-') << endl;
+	cout << string(79, '-') << endl;
 	pyInterface i(57, 43, 100, 1);
 	if (!i.ready()) {
 		cout<< "Exit" <<endl;
@@ -52,12 +55,12 @@ int main(void)
 		exit(-1);
 	}
 	OUT o{};
-	int64_t startTime = XsTime::timeStampNow();
-	int64_t now = XsTime::timeStampNow() - startTime;
 	std::cout<<std::endl;
 	while (1)
 	{
+		if (ub.is_breaked()) break;
 		if (!i.is_data_avail()) continue;
+
 		o = *(i.get_data());
 
 		cout << setw(5) << fixed << setprecision(2);
@@ -75,35 +78,32 @@ int main(void)
 		<< ", V_n:" << o.v_n;
 
 		cout << flush;
-		lat.push_back(make_pair(now, o.lat)); lon.push_back(make_pair(now, o.lon));
-		roll.push_back(make_pair(now, o.roll)); pitch.push_back(make_pair(now, o.pitch)); yaw.push_back(make_pair(now ,o.yaw));
-		ve.push_back(make_pair(now, o.v_e)); vn.push_back(make_pair(now, o.v_n));
-		coord << "plot"
-				<< coord.file1d(lat) << "with lines title 'lat',"
-				<< coord.file1d(lon) << "with lines title 'lon'" << std::endl;
+		lat.push_back(o.lat); lon.push_back(o.lon);
+		roll.push_back(o.roll); pitch.push_back(o.pitch); yaw.push_back(o.yaw);
+		ve.push_back(o.v_e); vn.push_back(o.v_n);
 
+        coord << "plot"
+		 	<< "'-' binary" << coord.binFmt1d(lat, "array") << "with lines title 'lat', "
+			<< "'-' binary" << coord.binFmt1d(lon, "array") << "with lines title 'lon'\n";
+        angles << "plot"
+		 	<< "'-' binary" << coord.binFmt1d(roll, "array") << "with lines title 'roll', "
+			<< "'-' binary" << coord.binFmt1d(pitch, "array") << "with lines title 'pitch', "
+			<< "'-' binary" << coord.binFmt1d(yaw, "array") << "with lines title 'yaw'\n";
 		spd << "plot"
-				<< coord.file1d(ve) << "with lines title 've',"
-				<< coord.file1d(vn) << "with lines title 'vn'" << std::endl;
+		 	<< "'-' binary" << coord.binFmt1d(ve, "array") << "with lines title 'v_e', "
+			<< "'-' binary" << coord.binFmt1d(vn, "array") << "with lines title 'v_n'\n";
 
-
-		angles << "plot"
-				<< angles.file1d(roll) << "with lines title 'roll',"
-				<< angles.file1d(pitch) << "with lines title 'pitch',"
-				<< angles.file1d(yaw) << "with lines title 'yaw'" << std::endl;
+        coord.sendBinary1d(lat); coord.sendBinary1d(lon); coord.flush();
+		angles.sendBinary1d(roll); angles.sendBinary1d(pitch); angles.sendBinary1d(yaw); angles.flush();
+		spd.sendBinary1d(ve); spd.sendBinary1d(vn); spd.flush();
 
 		XsTime::msleep(0);
-		now = XsTime::timeStampNow() - startTime;
-		if (ub.is_breaked()) break;
 	}
 	cout << "\n" << string(79, '-') << "\n";
-	spd.clearTmpfiles();
-	angles.clearTmpfiles();
-	coord.clearTmpfiles();
-	spd.close();
 	ub.main_loop_end = true;
 	thread.join();
 	string s="pkill -9 -f gnuplot";
 	system(s.c_str());
+	i.~pyInterface();
 	exit(0);
 }
