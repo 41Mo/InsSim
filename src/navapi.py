@@ -2,10 +2,18 @@ from ctypes import *
 import faulthandler
 from numpy import array as array, float64
 import math
-from plots import plots
-faulthandler.enable()
+from . plots import *
+import os.path
+import sys
 
-api_so = CDLL("modules/libnav/lib/libnavapi.so")
+faulthandler.enable()
+lib_path = "modules/libnav/lib"
+lib_file = "libnavapi.so"
+if not os.path.exists(lib_path+lib_file):
+    print("Use make api in "+lib_path+" first.")
+    sys.exit()
+
+api_so = CDLL(lib_path+lib_file)
 
 class vec_body(Structure):
         _fields_ = [("X", c_float),
