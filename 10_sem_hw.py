@@ -2,10 +2,10 @@
 import numpy as np
 import math as math
 
-from numpy import linspace as lp
+from numpy import mean
 import matplotlib.pyplot as plt
 
-from src.navapi import navapi
+from src.navapi import navapi, vec_body
 from src.csv_parser import get_data_from_csv
 from src.white_noize_gen import gen_white_noize
 from src.plots import plot_err_formula
@@ -27,7 +27,7 @@ save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
 ## alignment
-yaw = math.radians(180)
+yaw = math.radians(0)
 roll = math.radians(-2)
 pitch = math.radians(2)
 # time for alignment in seconds
@@ -86,13 +86,6 @@ A_X = [a + acc_offset_x+a_x for a in A_X]
 A_Y = [a + acc_offset_y+a_y for a in A_Y]
 A_Z = [a+a_z for a in A_Z]
 
-x_axis = np.linspace(0, data_frequency, len(A_X))
-fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
-axs[0].plot(x_axis, A_X)
-axs[1].plot(x_axis, A_Y)
-axs[2].plot(x_axis, A_Z)
-plt.show()
-
 
 G_X = gen_white_noize(sigma_g, sample_time, data_frequency)
 G_Y = gen_white_noize(sigma_g, sample_time, data_frequency)
@@ -101,13 +94,14 @@ G_X = [g+gyr_drift_x+w_x for g in G_X]
 G_Y = [g+gyr_drift_y+w_y for g in G_Y]
 G_Z = [g+w_z for g in G_Z]
 
+''' графики случайного сигнала
+x_axis = np.linspace(0, data_frequency, len(A_X))
+fig1,axs1 = plt.subplots(3,1,sharex=True,constrained_layout=True)
 x_axis = np.linspace(0, data_frequency, len(G_X))
-fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
-axs[0].plot(x_axis, G_X)
-axs[1].plot(x_axis, G_Y)
-axs[2].plot(x_axis, G_Z)
-plt.show()
+fig2,axs2 = plt.subplots(3,1,sharex=True,constrained_layout=True)
 
+axs1[0].plot(x_axis, A_X); axs1[1].plot(x_axis, A_Y); axs1[2].plot(x_axis, A_Z); axs2[0].plot(x_axis, G_X); axs2[1].plot(x_axis, G_Y); axs2[2].plot(x_axis, G_Z)
+'''
 #%% Сигнал датчиков без учета случайной составляющей
 G_X = gyr_drift_x+w_x;
 G_Y = gyr_drift_y+w_y;
@@ -117,7 +111,7 @@ A_Y = acc_offset_y+a_y
 A_Z = a_z
 
 #%%
-na.alignment_prh(roll, pitch, yaw)
+na.alignment_rph(pitch, roll, yaw)
 #%% записываем данные в навигационный алгоритм и начинаем расчет
 na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
@@ -140,32 +134,41 @@ plot_err_formula(
     sample_time*data_frequency
 ) 
 
-"""
-c_roll = hw._rph_angles[1]
-c_pitch = hw._rph_angles[0]
+#%% вычисление ошибок выставки
+ae = navapi()
+ae.init(lat,lon, sample_time, data_frequency)
+ae.alignment_acc(mean(A_X), mean(A_Y), mean(A_Z), yaw) # выставка по значениям акселерометров
+res = vec_body()
+ae.prh_after_alignment(res)
+print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))
+c_roll = res.X; c_pitch = res.Y
 
-#print("Roll: ", c_roll,
-# "Pitch", c_pitch,
-#)
-
-c_roll_err = abs(c_roll)-abs(math.radians(roll))
-c_pitch_err = abs(c_pitch)-abs(math.radians(pitch))
+# считаем ошибку, относительно значения из условия
+c_roll_err = c_roll-roll
+c_pitch_err = c_pitch-pitch
 
 print(
-"Model err pitch:", math.degrees(c_pitch_err), "\n",
-"Model err roll:", math.degrees(c_roll_err), "\n",
+"Ошбики при моделировании выставки в угловых минутах:\n",
+"по тангажу ", math.degrees(c_pitch_err)*60, "\n",
+"по крену ", math.degrees(c_roll_err)*60, "\n",
 )
 
-abz = G #hw.a_pre[2]
-abx = 0 #hw.a_pre[0]
-aby = 0 #hw.a_pre[1]
+abx = a_body[0] + acc_offset_x
+aby = a_body[1] + acc_offset_y
+abz = a_body[2]
 dabz = 0
 f_pitch_err = acc_offset_y / math.sqrt(math.pow(G,2) - math.pow(aby,2))
 f_roll_err = ((abx * dabz) - (acc_offset_x * abz)) / (pow(abx,2) + pow(abz,2))
 
 print(
-"Formula err pitch", math.degrees(f_pitch_err), "\n",
-"Formula err pitch", math.degrees(f_roll_err), "\n",
+"Ошибка выставки, полученные по формулам в угловых минутах\n",
+"по тангажу ", math.degrees(f_pitch_err)*60, "\n",
+"по крену", math.degrees(f_roll_err)*60, "\n",
 )
-print(math.degrees(abs(c_pitch_err) - abs(f_pitch_err)),math.degrees(abs(c_roll_err) - abs(f_roll_err)) )
-"""
+print(
+"Разница в определении ошибок в угловых минутах\n",
+"по тангажу ", math.degrees(c_pitch_err - f_pitch_err)*60, "\n",
+"по крену", math.degrees(c_roll_err - f_roll_err)*60
+)
+
+# %%

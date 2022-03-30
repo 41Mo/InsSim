@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from typing import Tuple
 
-def plot_err_formula(dax, day, dwx, dwy, G, R, time, points):
+def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points):
     cos = math.cos; sin = math.sin;
     Phiox = []; Phioy = []; Dvx = []; Dvy = [];
     nu = math.sqrt(G/R)
     x_axis = lp(0, time, points)
     for t in x_axis:
-        Phiox.append((2*day)/G * cos(nu*t) - day/G - dwx*math.sin(nu*t)/nu)
-        Phioy.append(dax/G - dwy*(sin(nu*t)/nu))
-        Dvx.append(dwy*R*(1-cos(nu*t)))
-        Dvy.append(-dwx*R*(1-cos(nu*t)))
+        Phiox.append((2*daoy)/G * cos(nu*t) - daoy/G - dwox*math.sin(nu*t)/nu)
+        Phioy.append(daox/G - dwoy*(sin(nu*t)/nu))
+        Dvx.append(dwoy*R*(1-cos(nu*t)))
+        Dvy.append(-dwox*R*(1-cos(nu*t)))
     
     fig,axs = plt.subplots(4,1,sharex=True,constrained_layout=True)
     

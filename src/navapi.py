@@ -55,8 +55,8 @@ api_so.api_init.argtypes = [
                             c_float, c_float,
                             c_int, c_int
                             ]
-api_so.api_alignment_prh.restype = None
-api_so.api_alignment_prh.argtypes = [
+api_so.api_alignment_rph.restype = None
+api_so.api_alignment_rph.argtypes = [
     c_void_p,
     c_float, c_float, c_float
 ]
@@ -88,8 +88,8 @@ api_so.api_get_g.argtypes = None
 api_so.api_get_u.restype = c_float
 api_so.api_get_u.argtypes = None
 
-api_so.api_get_prh.restype = vec_body
-api_so.api_get_prh.argtypes = [c_void_p]
+api_so.api_get_prh.restype = None
+api_so.api_get_prh.argtypes = [c_void_p, POINTER(vec_body)]
 
 class navapi(object):
     def __init__(self):
@@ -209,13 +209,13 @@ class navapi(object):
             lon[i] = d.lon[i] - self.lon
         return OUT(roll ,pitch, yaw, lat, lon, v_e, v_n)
     
-    def alignment_prh(self, pitch, roll, yaw):
+    def alignment_rph(self, roll, pitch, yaw):
         self.roll = roll; self.pitch = pitch; self.yaw = yaw
-        api_so.api_alignment_prh(self.obj, roll, pitch, yaw)
+        api_so.api_alignment_rph(self.obj, roll, pitch, yaw)
     def alignment_acc(self, ax_mean, ay_mean, az_mean, yaw):
-        api_so.api_alignment_acc.argtypes(self, ax_mean, ay_mean, az_mean, yaw)
+        api_so.api_alignment_acc(self.obj, ax_mean, ay_mean, az_mean, yaw)
     def alignment_cos(self, st, ct, sg, cg, sp, cp):
-        api_so.api_alignment_cos(self, st, ct, sg, cg, sp, cp)
+        api_so.api_alignment_cos(self.obj, st, ct, sg, cg, sp, cp)
     
     def convert_data(self, data):
         '''
@@ -235,8 +235,8 @@ class navapi(object):
         d = PY_OUT(roll, pitch, yaw, v_e, v_n, lat, lon)
         return d
 
-    def rph_after_alignment(self):
-        return api_so.api_get_prh(self)
+    def prh_after_alignment(self, v):
+        api_so.api_get_prh(self.obj, v)
 ''' example
 t = navapi()
 size = 5
