@@ -50,7 +50,7 @@ sigma_g = math.radians(0.05) # 0.05 [deg/sec]
 na.init(lat,lon, sample_time, data_frequency)
 
 # расчет матрицы перехода
-C = na.c_body_enu(yaw, roll, pitch)
+C = na.c_enu_body(yaw, roll, pitch)
 
 # перепроецируем G из body->enu
 a_enu = np.array([

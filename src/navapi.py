@@ -111,7 +111,7 @@ class navapi(object):
     def get_G(self):
         return api_so.api_get_g()
 
-    def c_body_enu(self, yaw, roll, pitch):
+    def c_enu_body(self, yaw, roll, pitch):
         psi = yaw
         teta= pitch;
         gamma= roll;
