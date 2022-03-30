@@ -3,21 +3,6 @@
 #include <iostream>
 #include <iomanip>
 
-/**
- * Convert the angle given in radians to degrees.
- */
-template<typename F>
-F rad2deg(F angle) {
-    return angle * 180.0 / M_PI;
-}
-
-/**
- * Convert the angle given in radians to degrees.
- */
-template<typename F>
-F deg2rad(F angle) {
-    return angle * M_PI / 180.0;
-}
 
 
 pyInterface::pyInterface(float lat, float lon, uint16_t frq, int64_t alignmentTime){

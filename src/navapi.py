@@ -1,6 +1,7 @@
+from cmath import pi
 from ctypes import *
 import faulthandler
-from numpy import array as array, float64
+from numpy import array, float64, rad2deg
 import math
 from . plots import *
 import os.path
@@ -8,7 +9,7 @@ import sys
 
 faulthandler.enable()
 lib_path = "modules/libnav/lib"
-lib_file = "libnavapi.so"
+lib_file = "/libnavapi.so"
 if not os.path.exists(lib_path+lib_file):
     print("Use make api in "+lib_path+" first.")
     sys.exit()
@@ -35,50 +36,85 @@ class OUT(Structure):
                 ("v_e", POINTER(c_float)),
                 ("v_n", POINTER(c_float)),
                 ]
+class PY_OUT():
+    def __init__(self, roll, pitch, yaw, v_e, v_n, lat, lon) -> None:
+        self.roll  = roll;
+        self.pitch = pitch;
+        self.yaw   = yaw;
+        self.lat   = lat;
+        self.lon   = lon;
+        self.v_e   = v_e;
+        self.v_n   = v_n;
 
 api_so.Analysis_api_new.restype  = c_void_p
 api_so.Analysis_api_new.argtypes = None
+
 api_so.api_init.restype = None
 api_so.api_init.argtypes = [
-                            c_void_p, c_float,
-                            c_float, c_float,
+                            c_void_p, 
                             c_float, c_float,
                             c_int, c_int
                             ]
+api_so.api_alignment_prh.restype = None
+api_so.api_alignment_prh.argtypes = [
+    c_void_p,
+    c_float, c_float, c_float
+]
+
+api_so.api_alignment_acc.restype = None
+api_so.api_alignment_acc.argtypes = [
+    c_void_p,
+    c_float, c_float, c_float, c_float
+]
+
+api_so.api_alignment_cos.restype = None
+api_so.api_alignment_cos.argtypes = [
+    c_void_p,
+    c_float, c_float, c_float, c_float, c_float, c_float
+]
+
 api_so.api_set_sens.restype = None
 api_so.api_set_sens.argtypes = [c_void_p, SENS]
+
 api_so.api_get_data.restype = OUT
 api_so.api_get_data.argtypes = [c_void_p]
+
 api_so.api_loop.restype = None
 api_so.api_loop.argtypes = [c_void_p]
+
 api_so.api_get_g.restype = c_float
 api_so.api_get_g.argtypes = None
+
 api_so.api_get_u.restype = c_float
 api_so.api_get_u.argtypes = None
+
+api_so.api_get_prh.restype = vec_body
+api_so.api_get_prh.argtypes = [c_void_p]
+
 class navapi(object):
     def __init__(self):
         self.obj = api_so.Analysis_api_new()
 
-    def init(self, roll,pitch,yaw, lat,lon, time,frequency):
+    def init(self, lat,lon, time,frequency):
         self.time = time
         self.dt = 1/frequency
         self.points = time*frequency
-        self.roll = roll; self.pitch = pitch; self.yaw = yaw;
         self.lat = lat; self.lon=lon;
-        api_so.api_init(self.obj, roll,pitch,yaw, lat,lon, time,frequency)
+        api_so.api_init(self.obj, lat,lon, time,frequency)
 
     def loop(self):
         api_so.api_loop(self.obj)
 
     def get_U(self):
         return api_so.api_get_u()
+
     def get_G(self):
         return api_so.api_get_g()
 
     def c_body_enu(self, yaw, roll, pitch):
-        psi = math.radians(yaw)
-        teta= math.radians(pitch);
-        gamma= math.radians(roll);
+        psi = yaw
+        teta= pitch;
+        gamma= roll;
 
         sp = math.sin(psi)
         st = math.sin(teta)
@@ -130,6 +166,9 @@ class navapi(object):
         elif ((type(a_x) and type(a_y) and type(a_z)) == float or float64):
             for i in range(0, p):
                 a[i].X = a_x; a[i].Y = a_y; a[i].Z = a_z
+        else:
+            print("Wrong set sens data type. Use float or list instead.")
+            sys.exit()
 
         if (type(g_x) and type(g_y) and type(g_z)) == list:
             for i, gx_i, gy_i, gz_i in zip(range(0, p), g_x, g_y, g_z):
@@ -137,6 +176,10 @@ class navapi(object):
         elif ((type(g_x) and type(g_y) and type(g_z)) == float or float64):
             for i in range(0, p):
                 g[i].X = g_x; g[i].Y = g_y; g[i].Z = g_z
+        else:
+            print("Wrong set sens data type. Use float or list instead.")
+            sys.exit()
+
         self.sensors = SENS(p, a, g)
         self.set_sens(self.sensors)
 
@@ -147,8 +190,10 @@ class navapi(object):
     def get_data(self):
         return api_so.api_get_data(self.obj)
 
+    def plot_model(self, DATA):
+        plots(DATA, self.time, self.points)
 
-    def plot_err_model(self):
+    def make_err_model(self):
         d = self.DATA
         FloatArrType = c_float * self.points
         roll = FloatArrType(); pitch = FloatArrType(); yaw = FloatArrType()
@@ -162,10 +207,36 @@ class navapi(object):
             v_n[i] = d.v_n[i]
             lat[i] = d.lat[i] - self.lat
             lon[i] = d.lon[i] - self.lon
-        self.Err = OUT(roll ,pitch, yaw, lat, lon, v_e, v_n)
-        plots(self.Err)
+        return OUT(roll ,pitch, yaw, lat, lon, v_e, v_n)
+    
+    def alignment_prh(self, pitch, roll, yaw):
+        self.roll = roll; self.pitch = pitch; self.yaw = yaw
+        api_so.api_alignment_prh(self.obj, roll, pitch, yaw)
+    def alignment_acc(self, ax_mean, ay_mean, az_mean, yaw):
+        api_so.api_alignment_acc.argtypes(self, ax_mean, ay_mean, az_mean, yaw)
+    def alignment_cos(self, st, ct, sg, cg, sp, cp):
+        api_so.api_alignment_cos(self, st, ct, sg, cg, sp, cp)
+    
+    def convert_data(self, data):
+        '''
+            convert data
+            angles rad->degrees
+            coord rad->meters
+        '''
+        points = self.points
+        roll  = rad2deg(data.roll[:points])
+        pitch = rad2deg(data.pitch[:points])
+        yaw   = rad2deg(data.yaw[:points])
+        v_e   = data.v_e[:points]
+        v_n   = data.v_n[:points]
+        lat   = rad2deg(data.lat[:points])
+        lon   = rad2deg(data.lon[:points])
 
+        d = PY_OUT(roll, pitch, yaw, v_e, v_n, lat, lon)
+        return d
 
+    def rph_after_alignment(self):
+        return api_so.api_get_prh(self)
 ''' example
 t = navapi()
 size = 5

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from src.navapi import navapi
 from src.csv_parser import get_data_from_csv
 from src.white_noize_gen import gen_white_noize
+from src.plots import plot_err_formula
 na = navapi()
 #%%
 """
@@ -16,8 +17,8 @@ na = navapi()
 G=na.get_G()
 U=na.get_U()
 # e.g Moscow
-lat = 55.75 # phi
-lon = 37.61 # lambda
+lat = math.radians(55.75) # phi
+lon = math.radians(37.61) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
@@ -45,10 +46,13 @@ sigma_g = math.radians(0.05) # 0.05 [deg/sec]
     Config section end
 """
 
-na.init(roll,pitch, yaw, lat, lon, sample_time, data_frequency)
+# задание начальных условий
+na.init(lat,lon, sample_time, data_frequency)
+
+# расчет матрицы перехода
 C = na.c_body_enu(yaw, roll, pitch)
 
-
+# перепроецируем G из body->enu
 a_enu = np.array([
     [0],
     [0],
@@ -60,7 +64,7 @@ a_x = a_body[0];
 a_y = a_body[1];
 a_z = a_body[2];
 
-
+# перепроецируем W земли из body->enu
 w_enu = np.array([
     [0],
     [U*math.cos(lat)],
@@ -73,7 +77,7 @@ w_y = w_body[1];
 w_z = w_body[2];
 
 
-#%%
+#%% генерация массива псевдо реального сигнала, с учетом случайной составляющей
 
 A_X = gen_white_noize(sigma_a, sample_time, data_frequency)
 A_Y = gen_white_noize(sigma_a, sample_time, data_frequency)
@@ -104,7 +108,7 @@ axs[1].plot(x_axis, G_Y)
 axs[2].plot(x_axis, G_Z)
 plt.show()
 
-#%%
+#%% Сигнал датчиков без учета случайной составляющей
 G_X = gyr_drift_x+w_x;
 G_Y = gyr_drift_y+w_y;
 G_Z = w_z;
@@ -113,16 +117,29 @@ A_Y = acc_offset_y+a_y
 A_Z = a_z
 
 #%%
+na.alignment_prh(roll, pitch, yaw)
+#%% записываем данные в навигационный алгоритм и начинаем расчет
 na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
 
 #%%
-na.plot_err_formula(acc_offset_x, acc_offset_y, gyr_drift_x, gyr_drift_y, G, 6378245.0, )
+d = na.make_err_model() # считаем ошибку
+conv = na.convert_data(d) # переводим из си
+na.plot_model(conv)
+#%% 
+
 #%%
-na.plots(na.DATA)
-#%%
-na.plot_err_model()
-#%%
+plot_err_formula(
+    acc_offset_x,
+    acc_offset_y,
+    gyr_drift_x,
+    gyr_drift_y,
+    G,
+    6378245.0,
+    sample_time,
+    sample_time*data_frequency
+) 
+
 """
 c_roll = hw._rph_angles[1]
 c_pitch = hw._rph_angles[0]
