@@ -19,21 +19,21 @@
 using namespace std::chrono_literals;
 using namespace std;
 
-static const uint8_t plt_number = 7;
+static const uint8_t plt_number = 13;
 static const char *deg_label = "deg";
 static const char *vel = "m/s";
 static const char *time_label = "time, sec";
 std::vector<std::shared_ptr<TGraph>> plots;
-std::array<uint8_t, plt_number> p_w_pos{{1,2,3,4,5,7,8/*,10,11,12,13,14,15*/}}; // plot position in root window
+std::array<uint8_t, plt_number> p_w_pos{{1,2,3,4,5,7,8,10,11,12,13,14,15}}; // plot position in root window
 //--------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
 	TApplication rootapp("spectrum", &argc, argv);
 
 	auto c1 = std::make_shared<TCanvas>("c1", "");
-	c1->SetWindowSize(1500, 700);
+	c1->SetWindowSize(1920, 1080);
 	// divide the canvas into seven vertical sub-canvas
-	c1->Divide(3, 3);
+	c1->Divide(3, 5);
 	
 	for (uint8_t i = 0; i<plt_number; i++) {
 		plots.push_back(std::make_shared<TGraph>(1));
@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
 	uint16_t frq;
 	uint64_t time;
 	cin >> frq >> time;
-	auto i_p = make_shared<pyInterface>(55.7558, 37.6173, frq, time);
+	//55.7558, 37.6173
+	auto i_p = make_shared<pyInterface>(0,0, frq, time);
 	UserBreak ub;
 	SensorThread st(i_p);
 	std::thread ui_thread(&UserBreak::input_loop, &ub);

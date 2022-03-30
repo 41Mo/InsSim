@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 from src.navapi import navapi, vec_body
 from src.csv_parser import get_data_from_csv
-from src.white_noize_gen import gen_white_noize
-from src.plots import plot_err_formula
+from src.white_noize_gen import gen_colour_noize
+from src.plots import plot_err_formula, plots
 na = navapi()
 #%%
 """
@@ -17,8 +17,8 @@ na = navapi()
 G=na.get_G()
 U=na.get_U()
 # e.g Moscow
-lat = math.radians(55.75) # phi
-lon = math.radians(37.61) # lambda
+lat = math.radians(0) # phi
+lon = math.radians(0) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
@@ -28,20 +28,22 @@ plots_size = (297,210) # plots height,width in mm
 
 ## alignment
 yaw = math.radians(0)
-roll = math.radians(-2)
-pitch = math.radians(2)
+roll = math.radians(0)
+pitch = math.radians(0)
 # time for alignment in seconds
 #alignment_time = 60
 ## alignment
 
 # sensor errors
-acc_offset_x = 0.0005 * 9.8  # [m/s/s] e.g 1 [mg]
+acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
 acc_offset_y = 0.001 * 9.8 # [m/s/s] e.g 1 [mg]
 gyr_drift_x = math.radians(2)/3600 # 2 [deg/hour]
 gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
 # normal distribution param
 sigma_a = 0.0005 * 9.8 # mg
 sigma_g = math.radians(0.05) # 0.05 [deg/sec] 
+Tg = 0.2
+Ta = 0.3
 """
     Config section end
 """
@@ -79,17 +81,17 @@ w_z = w_body[2];
 
 #%% генерация массива псевдо реального сигнала, с учетом случайной составляющей
 
-A_X = gen_white_noize(sigma_a, sample_time, data_frequency)
-A_Y = gen_white_noize(sigma_a, sample_time, data_frequency)
-A_Z = gen_white_noize(sigma_a, sample_time, data_frequency)
+A_X = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
+A_Y = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
+A_Z = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_X = [a + acc_offset_x+a_x for a in A_X]
 A_Y = [a + acc_offset_y+a_y for a in A_Y]
 A_Z = [a+a_z for a in A_Z]
 
 
-G_X = gen_white_noize(sigma_g, sample_time, data_frequency)
-G_Y = gen_white_noize(sigma_g, sample_time, data_frequency)
-G_Z = gen_white_noize(sigma_g, sample_time, data_frequency)
+G_X = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
+G_Y = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
+G_Z = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
 G_X = [g+gyr_drift_x+w_x for g in G_X]
 G_Y = [g+gyr_drift_y+w_y for g in G_Y]
 G_Z = [g+w_z for g in G_Z]
@@ -103,11 +105,11 @@ fig2,axs2 = plt.subplots(3,1,sharex=True,constrained_layout=True)
 axs1[0].plot(x_axis, A_X); axs1[1].plot(x_axis, A_Y); axs1[2].plot(x_axis, A_Z); axs2[0].plot(x_axis, G_X); axs2[1].plot(x_axis, G_Y); axs2[2].plot(x_axis, G_Z)
 '''
 #%% Сигнал датчиков без учета случайной составляющей
-G_X = gyr_drift_x+w_x;
-G_Y = gyr_drift_y+w_y;
-G_Z = w_z;
-A_X = acc_offset_x+a_x
-A_Y = acc_offset_y+a_y
+G_X = w_x+gyr_drift_x;
+G_Y = w_y+gyr_drift_y;
+G_Z = w_z
+A_X = a_x + acc_offset_x
+A_Y = a_y + acc_offset_y
 A_Z = a_z
 
 #%%
@@ -117,9 +119,11 @@ na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
 
 #%%
-d = na.make_err_model() # считаем ошибку
-conv = na.convert_data(d) # переводим из си
-na.plot_model(conv)
+#d = na.make_err_model() # считаем ошибку
+#conv = na.convert_data(d) # переводим из си
+#na.plot_model(conv)
+conv = na.convert_data(na.DATA)
+plots(conv, na.time, na.points)
 #%% 
 
 #%%
@@ -128,14 +132,14 @@ acc_offset = np.array([
     [acc_offset_y],
     [0]
 ])
-acc_err_body = a_body + acc_offset
+acc_err_body = acc_offset
 acc_err_enu = C.transpose() @ acc_err_body 
 gyr_drift = np.array([
     [gyr_drift_x],
     [gyr_drift_y],
     [0]
 ])
-gyr_drift_body = w_body + gyr_drift
+gyr_drift_body = gyr_drift
 gyr_drift_enu = C.transpose() @ gyr_drift_body
 plot_err_formula(
     acc_err_enu[0],
@@ -145,7 +149,9 @@ plot_err_formula(
     G,
     6378245.0,
     sample_time,
-    sample_time*data_frequency
+    sample_time*data_frequency,
+    yaw,
+    pitch
 ) 
 
 #%% вычисление ошибок выставки

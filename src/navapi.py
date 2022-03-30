@@ -135,14 +135,14 @@ class navapi(object):
         a33 = ct*cg
 
         # body_enu matrix
-        C_enu_body= array([
+        C_body_enu= array([
             [a11, a12, a13],
             [a21, a22, a23],
             [a31, a32, a33]
         ])
 
         # enu to body matrix
-        return C_enu_body
+        return C_body_enu.transpose()
 
     def main(self):
         self.loop()

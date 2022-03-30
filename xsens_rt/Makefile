@@ -29,7 +29,7 @@ LIB = lib/libxsens.so
 TEST = test
 CC = g++
 
-CPPFLAGS=-O3 -fPIC -Wall -Wextra -Werror `root-config --cflags`
+CPPFLAGS=-g -ggdb -O0 -fPIC -Wall -Wextra -Werror `root-config --cflags`
 LINKAGE=-shared
 
 .PHONY: all lib

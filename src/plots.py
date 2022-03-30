@@ -1,26 +1,29 @@
 import math
-from numpy import linspace as lp
+from numpy import array, rad2deg, linspace as lp
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from typing import Tuple
 
-def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points):
+def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points, psi, s_teta):
     cos = math.cos; sin = math.sin;
     Phiox = []; Phioy = []; Dvx = []; Dvy = [];
     nu = math.sqrt(G/R)
     x_axis = lp(0, time, points)
     for t in x_axis:
-        Phiox.append(- daoy/G - dwox*math.sin(nu*t)/nu)
+        Phiox.append(- daoy/G - dwox*sin(nu*t)/nu)
         Phioy.append(daox/G - dwoy*(sin(nu*t)/nu))
         Dvx.append(dwoy*R*(1-cos(nu*t)))
         Dvy.append(-dwox*R*(1-cos(nu*t)))
     
     fig,axs = plt.subplots(4,1,sharex=True,constrained_layout=True)
-    
-    axs[0].plot(x_axis, Phiox, label="roll")
-    axs[0].set_ylabel('$\\varphi_y$')
-    axs[1].plot(x_axis,  Phioy, label="pitch")
-    axs[1].set_ylabel('$\\varphi_x$')
+    Phioy = array(Phioy)
+    Phiox = array(Phiox)
+    teta = -(Phiox*cos(psi) - Phioy*sin(psi))
+    gamma = -(Phioy*cos(psi) + Phiox * sin(psi))*1/cos(s_teta)
+    axs[0].plot(x_axis, rad2deg(gamma), label="roll")
+    axs[0].set_ylabel('$d gamma$')
+    axs[1].plot(x_axis,  rad2deg(teta), label="pitch")
+    axs[1].set_ylabel('$d teta$')
     axs[2].plot(x_axis, Dvx, label="yaw")
     axs[2].set_ylabel('$Vox$')
     axs[3].plot(x_axis, Dvy, label="yaw")
