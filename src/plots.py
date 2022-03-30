@@ -10,7 +10,7 @@ def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points):
     nu = math.sqrt(G/R)
     x_axis = lp(0, time, points)
     for t in x_axis:
-        Phiox.append((2*daoy)/G * cos(nu*t) - daoy/G - dwox*math.sin(nu*t)/nu)
+        Phiox.append(- daoy/G - dwox*math.sin(nu*t)/nu)
         Phioy.append(daox/G - dwoy*(sin(nu*t)/nu))
         Dvx.append(dwoy*R*(1-cos(nu*t)))
         Dvy.append(-dwox*R*(1-cos(nu*t)))

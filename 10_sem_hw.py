@@ -123,11 +123,25 @@ na.plot_model(conv)
 #%% 
 
 #%%
+acc_offset = np.array([
+    [acc_offset_x],
+    [acc_offset_y],
+    [0]
+])
+acc_err_body = a_body + acc_offset
+acc_err_enu = C.transpose() @ acc_err_body 
+gyr_drift = np.array([
+    [gyr_drift_x],
+    [gyr_drift_y],
+    [0]
+])
+gyr_drift_body = w_body + gyr_drift
+gyr_drift_enu = C.transpose() @ gyr_drift_body
 plot_err_formula(
-    acc_offset_x,
-    acc_offset_y,
-    gyr_drift_x,
-    gyr_drift_y,
+    acc_err_enu[0],
+    acc_err_enu[1],
+    gyr_drift_enu[0],
+    gyr_drift_enu[1],
     G,
     6378245.0,
     sample_time,
