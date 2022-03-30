@@ -142,7 +142,7 @@ class navapi(object):
         ])
 
         # enu to body matrix
-        return C_enu_body.transpose()
+        return C_enu_body
 
     def main(self):
         self.loop()
