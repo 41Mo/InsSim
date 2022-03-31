@@ -190,8 +190,8 @@ class navapi(object):
     def get_data(self):
         return api_so.api_get_data(self.obj)
 
-    def plot_model(self, DATA):
-        plots(DATA, self.time, self.points)
+    def plot_model(self, DATA, title="", save=False):
+        plots(DATA, self.time, self.points, title=title, save=save)
 
     def make_err_model(self):
         d = self.DATA
@@ -224,9 +224,10 @@ class navapi(object):
             coord rad->meters
         '''
         points = self.points
-        roll  = rad2deg(data.roll[:points])
-        pitch = rad2deg(data.pitch[:points])
-        yaw   = rad2deg(data.yaw[:points])
+        # from radians to angle minutes
+        roll  = rad2deg(data.roll[:points])*60 
+        pitch = rad2deg(data.pitch[:points])*60
+        yaw   = rad2deg(data.yaw[:points])*60
         v_e   = data.v_e[:points]
         v_n   = data.v_n[:points]
         lat   = rad2deg(data.lat[:points])
