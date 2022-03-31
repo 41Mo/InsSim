@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 	uint64_t time;
 	cin >> frq >> time;
 	//55.7558, 37.6173
-	auto i_p = make_shared<pyInterface>(0,0, frq, time);
+	auto i_p = make_shared<pyInterface>(57.765,37.685, frq, time);
 	UserBreak ub;
 	SensorThread st(i_p);
 	std::thread ui_thread(&UserBreak::input_loop, &ub);
