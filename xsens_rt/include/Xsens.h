@@ -20,12 +20,12 @@ public:
 	bool data_availible();
 	void set_frequency(uint16_t freq) { frequency = freq; };
 	int init();
+	int scanDevice();
 
 private:
 	int deinit();
 	int handleError(std::string errorstr);
 	int log();
-	int scanDevice();
 	int configureDevice();
 	int openPort();
 
@@ -35,6 +35,7 @@ private:
 	CallbackHandler callback;
 	bool logdata;
 	uint16_t frequency;
+	bool scanned;
 };
 
 

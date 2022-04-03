@@ -35,8 +35,10 @@ int Xsens::init()
 	xdaVersion(&version);
 	cout << "Using XDA version: " << version.toString().toStdString() << endl;
 
-	if (scanDevice() !=0) return -1;
-	if (openPort() != 0) return -1;
+	if (!scanned) {
+		if (scanDevice() !=0) return -1;
+	}
+		if (openPort() != 0) return -1;
 
 	// Get the device object
 	device = control->device(mtPort.deviceId());
@@ -111,6 +113,7 @@ int Xsens::scanDevice() {
 		return handleError("No MTi device found. Aborting.");
 
 	cout << "Found a device with ID: " << mtPort.deviceId().toString().toStdString() << " @ port: " << mtPort.portName().toStdString() << ", baudrate: " << mtPort.baudrate() << endl;
+	scanned = true;
 	return 0;
 }
 
