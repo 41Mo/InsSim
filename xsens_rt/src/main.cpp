@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 		{
 			// get data from sensor thread, and set it as a point with time from start
 			auto nanosec = (high_resolution_clock::now() - startTime).count();
-			auto t_from_start = nanosec * 10e-9;
+			auto t_from_start = nanosec * 1e-9;
 			plots.at(i)->SetPoint(point_num, t_from_start, st.o.data[i]);
 			// update plots
 			c1->cd(p_w_pos[i]);
