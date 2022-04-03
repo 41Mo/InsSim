@@ -74,3 +74,19 @@ void pyInterface::get_data(NavOut *data) {
         }
     }
 }
+
+void print_sens_data(NavOut o)
+{
+	std::cout << std::setw(5) << std::fixed << std::setprecision(2);
+	std::cout << "\r"
+			  << "Lat:" << o.lat()
+			  << ", Lon:" << o.lon();
+	std::cout
+		<< " |Roll:" << o.roll()
+		<< ", Pitch:" << o.pitch()
+		<< ", Yaw:" << o.yaw();
+	std::cout
+		<< " |V_e:" << o.v_e()
+		<< ", V_n:" << o.v_n();
+	std::cout << std::flush;
+}

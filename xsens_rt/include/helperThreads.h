@@ -1,54 +1,34 @@
-#include <iostream>
-#include <memory>
-#include <chrono>
-#include <cstdlib>
+#ifndef HELPER_THREADS_H
+#define HELPER_THREADS_H
+
 #include "pyInterface.h"
-using namespace std::chrono_literals;
 class UserBreak
 {
 private:
 	bool breaked = false;
+
 public:
 	bool is_breaked() { return breaked; }
+	void input_loop(void);
 
-	void input_loop(void) {
-		while(std::cin.get() != EOF || main_loop_end) {
-    	    std::this_thread::sleep_for(500ms);
-		}
-		std::cout<<std::endl<<"User input break"<<std::endl;
-		breaked = true;
-	}
 	bool main_loop_end;
 };
 
 class SensorThread
 {
-	public:
+public:
 	bool main_loop_end;
-		NavOut o{};
-		SensorThread(std::shared_ptr<pyInterface> i) {
-			i_ptr = i;
-		}
-		void gather_data() {
-			while (!main_loop_end) {
-				i_ptr->get_data(&o);
-			} 
-		}
-	private:
+	NavOut o{};
+	SensorThread(std::shared_ptr<pyInterface> i, int32_t freq) : i_ptr(i)
+	{
+		using namespace std::chrono_literals;
+		sec_to_sleep = std::chrono::milliseconds(1000/freq);
+	}
+	void gather_data();
+
+private:
 	std::shared_ptr<pyInterface> i_ptr;
+	std::chrono::milliseconds sec_to_sleep;
 };
 
-void print_sens_data(NavOut o) {
-	std::cout << std::setw(5) << std::fixed << std::setprecision(2);
-	std::cout << "\r"
-	<< "Lat:" << o.lat()
-	<< ", Lon:" << o.lon();
-	std::cout 
-	<< " |Roll:" << o.roll()
-	<< ", Pitch:" << o.pitch()
-	<< ", Yaw:" << o.yaw();
-	std::cout 
-	<< " |V_e:" << o.v_e()
-	<< ", V_n:" << o.v_n();
-	std::cout << std::flush;
-}
+#endif

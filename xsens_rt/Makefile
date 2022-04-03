@@ -5,6 +5,7 @@ SRCS := \
 		src/callbackHandler.cpp \
 		src/Xsens.cpp \
 		src/pyInterface.cpp \
+		src/helperThreads.cpp
 
 TEST_SRC := src/main.cpp
 
@@ -28,8 +29,8 @@ LFLAGS+=`root-config --glibs`
 LIB = lib/libxsens.so
 TEST = test
 CC = g++
-
-CPPFLAGS=-g -ggdb -O0 -fPIC -Wall -Wextra -Werror `root-config --cflags`
+#-Wall -Wextra -Werror
+CPPFLAGS=-g -ggdb -O0 -fPIC  `root-config --cflags`
 LINKAGE=-shared
 
 .PHONY: all lib
@@ -39,6 +40,11 @@ test: $(TEST)
 
 %.o:%.cpp
 	${CC} $(addprefix -I,$(HDRS)) $(addprefix -I,$(INCLUDE)) ${CPPFLAGS} -c $< -o $@
+
+libnav_make:
+	make $(LIBNAV_INSTALL_PREFIX)/Makefile lib
+libnav_clean:
+	make $(LIBNAV_INSTALL_PREFIX)/Makefile clean
 
 $(LIB): $(OBJS)
 	${CC} ${LINKAGE} $^ -o $@

@@ -1,9 +1,5 @@
 #include <iostream>
-#include <iomanip>
-#include <string>
 #include <vector>
-#include <cmath>
-#include <cstdlib>
 #include <thread>
 #include <chrono>
 
@@ -11,29 +7,28 @@
 #include "TGraph.h"
 #include "TApplication.h"
 #include "TAxis.h"
-#include "xstypes/xstime.h"
 #include "Xsens.h"
 #include "pyInterface.h"
 #include "helperThreads.h"
 
-using namespace std::chrono_literals;
-using namespace std;
 
-static const uint8_t plt_number = 13;
+static const uint8_t plt_number = 7;
 static const char *deg_label = "deg";
 static const char *vel = "m/s";
 static const char *time_label = "time, sec";
 std::vector<std::shared_ptr<TGraph>> plots;
-std::array<uint8_t, plt_number> p_w_pos{{1,2,3,4,5,7,8,10,11,12,13,14,15}}; // plot position in root window
+std::array<uint8_t, plt_number> p_w_pos{{1,2,3,4,5,7,8/*,10,11,12,13,14,15*/}}; // plot position in root window
 //--------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+	using namespace std::chrono_literals;
+	using namespace std;
 	TApplication rootapp("spectrum", &argc, argv);
 
 	auto c1 = std::make_shared<TCanvas>("c1", "");
-	c1->SetWindowSize(1920, 1080);
+	c1->SetWindowSize(1920, 700);
 	// divide the canvas into seven vertical sub-canvas
-	c1->Divide(3, 5);
+	c1->Divide(3, 3);
 	
 	for (uint8_t i = 0; i<plt_number; i++) {
 		plots.push_back(std::make_shared<TGraph>(1));
@@ -64,7 +59,7 @@ int main(int argc, char* argv[])
 	//55.7558, 37.6173
 	auto i_p = make_shared<pyInterface>(57.765,37.685, frq, time);
 	UserBreak ub;
-	SensorThread st(i_p);
+	SensorThread st(i_p, frq);
 	std::thread ui_thread(&UserBreak::input_loop, &ub);
 	std::thread se_thread(&SensorThread::gather_data, &st);
 	std::cout << std::string(79, '-') << std::endl;
@@ -76,6 +71,7 @@ int main(int argc, char* argv[])
 	}
 
 
+ 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	uint64_t point_num = 0;
 	int64_t startTime = XsTime::timeStampNow();
 	auto t1 = std::chrono::high_resolution_clock::now();

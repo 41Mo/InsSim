@@ -30,7 +30,7 @@ class NavOut
     void gx(float g)    {  data[10]= g; };
     void gy(float g)    {  data[11]= g; };
     void gz(float g)    {  data[12]= g; };
-    float data[13];
+    float data[13]{0};
 };
 
   class pyInterface
@@ -52,4 +52,5 @@ class NavOut
     void get_data(NavOut *o);
   };
 
+void print_sens_data(NavOut o);
 #endif

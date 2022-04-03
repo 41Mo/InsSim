@@ -3,3 +3,4 @@ test
 main
 *.so
 *.dll
+compile_commands.json
