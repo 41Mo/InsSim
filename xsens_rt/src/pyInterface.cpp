@@ -3,31 +3,42 @@
 #include <iostream>
 #include <iomanip>
 
+pyInterface::pyInterface()
+{
+}
 
+pyInterface::~pyInterface()
+{
+}
 
-pyInterface::pyInterface(float lat, float lon, uint16_t frq, int64_t alignmentTime){
+void pyInterface::init(float lat, float lon, uint16_t frq) {
     xsens.set_frequency(frq);
-    if (xsens.init() !=0) error = true;
+    if (xsens.init() != 0)
+        error = true;
     nav.init(deg2rad(lat), deg2rad(lon), frq);
-    if (ready()) alignment(alignmentTime);
 }
 
-pyInterface::~pyInterface(){
+int pyInterface::scan_dev() {
+    return xsens.scanDevice();
 }
 
-void pyInterface::alignment(int64_t time) {
+void pyInterface::alignment(int64_t time)
+{
     int measCount = 0;
     SensData s{};
     SensData mean{};
 
     std::cout << "stating alignment for amount of " << time << " sec\n";
     time *= 1000;
-	int64_t startTime = XsTime::timeStampNow();
-	std::cout << std::setw(5) << std::fixed << std::setprecision(2);
+    int64_t startTime = XsTime::timeStampNow();
+    std::cout << std::setw(5) << std::fixed << std::setprecision(2);
     auto now = XsTime::timeStampNow() - startTime;
-	while (now <= time) {
-	    if (xsens.data_availible()) {
-	    	if (xsens.recieve(&s)) {
+    while (now <= time)
+    {
+        if (xsens.data_availible())
+        {
+            if (xsens.recieve(&s))
+            {
                 mean.acc.X += s.acc.X;
                 mean.acc.Y += s.acc.Y;
                 mean.acc.Z += s.acc.Z;
@@ -36,12 +47,12 @@ void pyInterface::alignment(int64_t time) {
                 mean.mag.Y += s.mag.Y;
                 mean.mag.Z += s.mag.Z;
                 measCount++;
-		        std::cout << "\r" << now << std::flush;
-           }
-       }
-       now = XsTime::timeStampNow() - startTime;
+                std::cout << "\r" << now << std::flush;
+            }
+        }
+        now = XsTime::timeStampNow() - startTime;
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
 
     mean.acc.X /= measCount;
     mean.acc.Y /= measCount;
@@ -53,9 +64,12 @@ void pyInterface::alignment(int64_t time) {
     nav.alignment(mean.acc.X, mean.acc.Y, mean.acc.Z, yaw);
 }
 
-void pyInterface::get_data(NavOut *data) {
-	if (xsens.data_availible()) {
-		if (xsens.recieve(&sens)) {
+void pyInterface::get_data(NavOut *data)
+{
+    if (xsens.data_availible())
+    {
+        if (xsens.recieve(&sens))
+        {
             nav.iter(sens.acc, sens.gyr);
 
             data->roll(rad2deg(nav.gamma));
@@ -77,16 +91,16 @@ void pyInterface::get_data(NavOut *data) {
 
 void print_sens_data(NavOut o)
 {
-	std::cout << std::setw(5) << std::fixed << std::setprecision(2);
-	std::cout << "\r"
-			  << "Lat:" << o.lat()
-			  << ", Lon:" << o.lon();
-	std::cout
-		<< " |Roll:" << o.roll()
-		<< ", Pitch:" << o.pitch()
-		<< ", Yaw:" << o.yaw();
-	std::cout
-		<< " |V_e:" << o.v_e()
-		<< ", V_n:" << o.v_n();
-	std::cout << std::flush;
+    std::cout << std::setw(5) << std::fixed << std::setprecision(2);
+    std::cout << "\r"
+              << "Lat:" << o.lat()
+              << ", Lon:" << o.lon();
+    std::cout
+        << " |Roll:" << o.roll()
+        << ", Pitch:" << o.pitch()
+        << ", Yaw:" << o.yaw();
+    std::cout
+        << " |V_e:" << o.v_e()
+        << ", V_n:" << o.v_n();
+    std::cout << std::flush;
 }
