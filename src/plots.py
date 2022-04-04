@@ -2,6 +2,7 @@ import math
 from numpy import array, rad2deg, linspace as lp
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
+#plt.style.use('Solarize_Light2')
 from typing import Tuple
 
 def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points, psi, s_teta):
@@ -32,8 +33,9 @@ def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points, psi, s_teta):
     axs[3].set_ylabel('$\\Delta$Voy, м/с')
     axs[3].set_xlabel("время, с")
 
+    fig.savefig("./images/"+"По формулам"+".jpg", bbox_inches='tight')
 
-def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="", additional_plots:bool=False):
+def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="", err:bool=False):
     """
     generate 1 plot with 7 subplots
     - orientation angles
@@ -51,7 +53,10 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     lat = data.lat[:points]
     lon = data.lon[:points]
 
-
+    if err:
+        pref="$\Delta$"
+    else:
+        pref=""
 
     size = (size[0]/25.4, size[1]/25.4)
 
@@ -59,11 +64,11 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig.set_size_inches(size)
     x_axis = lp(0, time, points)
     axs[0].plot(x_axis, roll)
-    axs[0].set_ylabel('$\\theta$, угл мин')
+    axs[0].set_ylabel(pref+'$\\theta$, угл мин')
     axs[1].plot(x_axis,  pitch)
-    axs[1].set_ylabel('$\gamma$, угл мин')
+    axs[1].set_ylabel(pref+'$\gamma$, угл мин')
     axs[2].plot(x_axis, yaw, label="yaw")
-    axs[2].set_ylabel('$\psi$, угл мин')
+    axs[2].set_ylabel(pref+'$\psi$, угл мин')
     axs[2].set_xlabel("время, с")
     if save:
         plt.savefig("./images/"+"angles"+title+".jpg", bbox_inches='tight')
@@ -73,9 +78,9 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig.set_size_inches(size)
 
     axs[0].plot(x_axis, v_e)
-    axs[0].set_ylabel('$V_E$, м/c')
+    axs[0].set_ylabel(pref+'$V_E$, м/c')
     axs[1].plot(x_axis, v_n)
-    axs[1].set_ylabel('$V_N$, м/c')
+    axs[1].set_ylabel(pref+'$V_N$, м/c')
     axs[1].set_xlabel("время, с")
 
     if save:
@@ -86,9 +91,9 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig.set_size_inches(size)
 
     axs[0].plot(x_axis, lat,label="lat")
-    axs[0].set_ylabel('$\\varphi$, м')
+    axs[0].set_ylabel(pref+'$\\varphi$, м')
     axs[1].plot(x_axis, lon,label="lon")
-    axs[1].set_ylabel('$\lambda$, м')
+    axs[1].set_ylabel(pref+'$\lambda$, м')
     axs[1].set_xlabel("время, с")
 
 
