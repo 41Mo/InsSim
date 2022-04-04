@@ -15,7 +15,7 @@ static const char *deg_label = "deg";
 static const char *vel = "m/s";
 static const char *time_label = "time, sec";
 std::vector<std::shared_ptr<TGraph>> plots;
-std::array p_w_pos{1, 2, 3, 4, 5, 7, 8/*, 10,11,12,13,14,15 */}; // plot position in root window
+std::array p_w_pos{1, 2, 3, 4, 5, 7, 8 /*, 10,11,12,13,14,15 */}; // plot position in root window
 const uint8_t plt_number = p_w_pos.size();
 const uint8_t subplot_col = 3;
 //--------------------------------------------------------------------------------
@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
 	using namespace std::chrono;
 	using namespace std;
 
-
 	auto i_p = make_shared<pyInterface>();
-	//check if xsens dev is present
-	if (i_p->scan_dev() != 0) exit(0);
+	// check if xsens dev is present
+	if (i_p->scan_dev() != 0)
+		exit(0);
 	// setup xsens device, setup nav_alg
 	cout << "Input frequency, alignment time in seconds" << endl;
 	uint16_t frq;
@@ -56,17 +56,20 @@ int main(int argc, char *argv[])
 	}
 
 	// setup root app
-	char** c {};
+	char **c{};
 	TApplication rootapp("xsens mti3", 0, c);
 
 	auto c1 = std::make_shared<TCanvas>("xsens", "mti3");
 	c1->SetWindowSize(1920, 700);
 
 	// divide the canvas into seven vertical sub-canvas
-	if (plt_number % subplot_col == 0) {
-		c1->Divide(subplot_col, plt_number/subplot_col);
-	} else {
-		c1->Divide(subplot_col, (plt_number/subplot_col)+1);
+	if (plt_number % subplot_col == 0)
+	{
+		c1->Divide(subplot_col, plt_number / subplot_col);
+	}
+	else
+	{
+		c1->Divide(subplot_col, (plt_number / subplot_col) + 1);
 	}
 
 	for (uint8_t i = 0; i < plt_number; i++)
