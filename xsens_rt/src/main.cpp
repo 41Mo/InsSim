@@ -11,12 +11,13 @@
 #include "pyInterface.h"
 #include "helperThreads.h"
 
-static const uint8_t plt_number = 7;
 static const char *deg_label = "deg";
 static const char *vel = "m/s";
 static const char *time_label = "time, sec";
 std::vector<std::shared_ptr<TGraph>> plots;
-std::array<uint8_t, plt_number> p_w_pos{{1, 2, 3, 4, 5, 7, 8 /*,10,11,12,13,14,15*/}}; // plot position in root window
+std::array p_w_pos{1, 2, 3, 4, 5, 7, 8/*, 10,11,12,13,14,15 */}; // plot position in root window
+const uint8_t plt_number = p_w_pos.size();
+const uint8_t subplot_col = 3;
 //--------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
@@ -55,12 +56,18 @@ int main(int argc, char *argv[])
 	}
 
 	// setup root app
-	TApplication rootapp("spectrum", &argc, argv);
+	char** c {};
+	TApplication rootapp("xsens mti3", 0, c);
 
-	auto c1 = std::make_shared<TCanvas>("c1", "");
+	auto c1 = std::make_shared<TCanvas>("xsens", "mti3");
 	c1->SetWindowSize(1920, 700);
+
 	// divide the canvas into seven vertical sub-canvas
-	c1->Divide(3, 3);
+	if (plt_number % subplot_col == 0) {
+		c1->Divide(subplot_col, plt_number/subplot_col);
+	} else {
+		c1->Divide(subplot_col, (plt_number/subplot_col)+1);
+	}
 
 	for (uint8_t i = 0; i < plt_number; i++)
 	{
@@ -135,8 +142,8 @@ int main(int argc, char *argv[])
 
 		auto t2 = std::chrono::high_resolution_clock::now();
 		auto diff = t2 - t1; // calculate diff between loop start and end.
-		if (diff < 16ms)	 // prevent thread updating faster then then 16ms <=>60FPS
-			std::this_thread::sleep_for(16ms - diff);
+		if (diff < 33ms)	 // prevent thread updating faster then then 16ms <=>60FPS
+			std::this_thread::sleep_for(33ms - diff);
 		t1 = t2;
 	}
 	std::cout << "\n"
