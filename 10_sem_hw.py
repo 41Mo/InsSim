@@ -2,7 +2,7 @@
 import numpy as np
 import math as math
 
-from numpy import mean
+from numpy import mean, rad2deg
 import matplotlib.pyplot as plt
 
 from src.navapi import navapi, vec_body
@@ -22,7 +22,7 @@ lon = math.radians(0) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
-data_frequency = 100 # Hz
+data_frequency = 5 # Hz
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
@@ -62,9 +62,9 @@ a_enu = np.array([
 ]
 )
 a_body = C@a_enu
-a_x = a_body[0];
-a_y = a_body[1];
-a_z = a_body[2];
+a_x = a_body[0][0];
+a_y = a_body[1][0];
+a_z = a_body[2][0];
 
 # перепроецируем W земли из body->enu
 w_enu = np.array([
@@ -74,36 +74,75 @@ w_enu = np.array([
 ]
 )
 w_body = C@w_enu
-w_x = w_body[0];
-w_y = w_body[1];
-w_z = w_body[2];
+w_x = w_body[0][0];
+w_y = w_body[1][0];
+w_z = w_body[2][0];
 
 
-#%% генерация массива псевдо реального сигнала, с учетом случайной составляющей
+#%% генерация массивов случайной составляющей
 
 A_X = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Y = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Z = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
-A_X = [a + acc_offset_x+a_x for a in A_X]
-A_Y = [a + acc_offset_y+a_y for a in A_Y]
-A_Z = [a+a_z for a in A_Z]
-
 
 G_X = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
 G_Y = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
 G_Z = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
+
+size = (210/25.4, 297/25.4)
+fig1,axs1 = plt.subplots(6,2,constrained_layout=True, sharex='col')
+fig1.set_size_inches(size)
+
+# строим автокорреляцию
+lags=4
+axs1[0,1].set_title("Автокорреляция")
+axs1[0,1].acorr(A_X,
+    usevlines=False, maxlags=lags, linestyle="solid", marker="");
+axs1[1,1].acorr(A_Y,
+    usevlines=False, maxlags=lags, linestyle="solid", marker="");
+axs1[2,1].acorr(A_Z,
+usevlines=False, maxlags=lags, linestyle="solid", marker="");
+axs1[3,1].acorr(G_X,
+usevlines=False, maxlags=lags, linestyle="solid", marker="");
+axs1[4,1].acorr(G_Y,
+usevlines=False, maxlags=lags, linestyle="solid", marker="");
+axs1[5,1].acorr(G_Z,
+usevlines=False, maxlags=lags, linestyle="solid", marker="");
+
+# добавляем к случайному составляющей измеряемое значение и дрейф
+A_X = [a + acc_offset_x+a_x for a in A_X]
+A_Y = [a + acc_offset_y+a_y for a in A_Y]
+A_Z = [a+a_z for a in A_Z]
+
 G_X = [g+gyr_drift_x+w_x for g in G_X]
 G_Y = [g+gyr_drift_y+w_y for g in G_Y]
 G_Z = [g+w_z for g in G_Z]
 
-''' графики случайного сигнала
-x_axis = np.linspace(0, data_frequency, len(A_X))
-fig1,axs1 = plt.subplots(3,1,sharex=True,constrained_layout=True)
-x_axis = np.linspace(0, data_frequency, len(G_X))
-fig2,axs2 = plt.subplots(3,1,sharex=True,constrained_layout=True)
+#''' графики случайного сигнала
+axs1[0,0].set_title("Сигнал акселерометров")
+axs1[3,0].set_title("Сигнал гироскопов")
 
-axs1[0].plot(x_axis, A_X); axs1[1].plot(x_axis, A_Y); axs1[2].plot(x_axis, A_Z); axs2[0].plot(x_axis, G_X); axs2[1].plot(x_axis, G_Y); axs2[2].plot(x_axis, G_Z)
-'''
+x_axis = np.linspace(0, sample_time, len(A_X))
+
+axs1[0, 0].plot(x_axis, A_X)
+axs1[0,0].set_ylabel("x, м/c/c")
+axs1[1, 0].plot(x_axis, A_Y)
+axs1[1,0].set_ylabel("y, м/c/c")
+axs1[2, 0].plot(x_axis, A_Z)
+axs1[2,0].set_ylabel("z, м/c/c")
+axs1[3, 0].plot(x_axis, rad2deg(G_X))
+axs1[3,0].set_ylabel("x, град/c")
+axs1[4, 0].plot(x_axis, rad2deg(G_Y))
+axs1[4,0].set_ylabel("y, град/c")
+axs1[5, 0].plot(x_axis, rad2deg(G_Z))
+axs1[5,0].set_ylabel("z, град/c")
+axs1[5,0].set_xlabel("время, c");
+fig1.savefig("./images/"+"Сигналы датчиков"+".jpg", bbox_inches='tight')
+
+print("X: ", mean(A_X), "\n", "Y:", mean(A_Y), "\n", "Z:", mean(A_Z), "\n",
+    "X:", mean(rad2deg(G_X)), "\n", "Y:", mean(rad2deg(G_Y)), "\n", "Z:", mean(rad2deg(G_Z)), "\n")
+
+#'''
 #%% Сигнал датчиков без учета случайной составляющей
 G_X = w_x+gyr_drift_x;
 G_Y = w_y+gyr_drift_y;
@@ -119,11 +158,11 @@ na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
 
 #%%
-#d = na.make_err_model() # считаем ошибку
-#conv = na.convert_data(d) # переводим из си
-#na.plot_model(conv)
-conv = na.convert_data(na.DATA)
-plots(conv, na.time, na.points)
+d = na.make_err_model() # считаем ошибку
+conv = na.convert_data(d) # переводим из си
+na.plot_model(conv, title="Ошибка моделирования на экваторе", save=True, err=True)
+#conv = na.convert_data(na.DATA)
+#plots(conv, na.time, na.points)
 #%% 
 
 #%%
@@ -161,7 +200,7 @@ ae.alignment_acc(mean(A_X), mean(A_Y), mean(A_Z), yaw) # выставка по �
 res = vec_body()
 ae.prh_after_alignment(res)
 print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))
-c_roll = res.X; c_pitch = res.Y
+c_pitch = res.X; c_roll = res.Y
 
 # считаем ошибку, относительно значения из условия
 c_roll_err = c_roll-roll

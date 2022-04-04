@@ -190,8 +190,8 @@ class navapi(object):
     def get_data(self):
         return api_so.api_get_data(self.obj)
 
-    def plot_model(self, DATA, title="", save=False):
-        plots(DATA, self.time, self.points, title=title, save=save)
+    def plot_model(self, DATA, title="", save=False, err=False):
+        plots(DATA, self.time, self.points, title=title, save=save, err=err)
 
     def make_err_model(self):
         d = self.DATA
