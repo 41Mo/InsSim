@@ -22,12 +22,12 @@ lon = math.radians(0) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
-data_frequency = 5 # Hz
+data_frequency = 10 # Hz
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
 ## alignment
-yaw = math.radians(0)
+heading = math.radians(0)
 roll = math.radians(0)
 pitch = math.radians(0)
 # time for alignment in seconds
@@ -36,8 +36,8 @@ pitch = math.radians(0)
 
 # sensor errors
 acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
-acc_offset_y = 0.001 * 9.8 # [m/s/s] e.g 1 [mg]
-gyr_drift_x = math.radians(2)/3600 # 2 [deg/hour]
+acc_offset_y = 0.002 * 9.8 # [m/s/s] e.g 1 [mg]
+gyr_drift_x = math.radians(1)/3600 # 2 [deg/hour]
 gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
 # normal distribution param
 sigma_a = 0.0005 * 9.8 # mg
@@ -49,10 +49,10 @@ Ta = 0.3
 """
 
 # задание начальных условий
-na.init(lat,lon, sample_time, data_frequency)
+na.init(lat,lon, sample_time, data_frequency, roll, pitch, heading)
 
 # расчет матрицы перехода
-C = na.c_enu_body(yaw, roll, pitch)
+C = na.c_enu_body(heading, roll, pitch)
 
 # перепроецируем G из body->enu
 a_enu = np.array([
@@ -80,7 +80,7 @@ w_z = w_body[2][0];
 
 
 #%% генерация массивов случайной составляющей
-
+#"""
 A_X = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Y = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Z = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
@@ -141,29 +141,32 @@ fig1.savefig("./images/"+"Сигналы датчиков"+".jpg", bbox_inches='
 
 print("X: ", mean(A_X), "\n", "Y:", mean(A_Y), "\n", "Z:", mean(A_Z), "\n",
     "X:", mean(rad2deg(G_X)), "\n", "Y:", mean(rad2deg(G_Y)), "\n", "Z:", mean(rad2deg(G_Z)), "\n")
-
-#'''
+#"""
 #%% Сигнал датчиков без учета случайной составляющей
+#"""
 G_X = w_x+gyr_drift_x;
 G_Y = w_y+gyr_drift_y;
 G_Z = w_z
 A_X = a_x + acc_offset_x
 A_Y = a_y + acc_offset_y
 A_Z = a_z
+#"""
 
 #%%
-na.alignment_rph(pitch, roll, yaw)
+na.alignment_acc(mean(A_Y), mean(A_X), mean(A_Z), heading)
+res = vec_body()
+na.prh_after_alignment(res)
+print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))
 # записываем данные в навигационный алгоритм и начинаем расчет
 na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
 na.main()
 
 #%%
+#conv = na.convert_data(na.DATA)
+#plots(conv, na.time, na.points, title="моделир случ ", save=True)
 d = na.make_err_model() # считаем ошибку
 conv = na.convert_data(d) # переводим из си
-na.plot_model(conv, title="Ошибка моделирования на экваторе", save=True, err=True)
-#conv = na.convert_data(na.DATA)
-#plots(conv, na.time, na.points)
-#%% 
+na.plot_model(conv, title="Моделирования случайной ошибки", save=True, err=True)
 
 #%%
 acc_offset = np.array([
@@ -181,22 +184,22 @@ gyr_drift = np.array([
 gyr_drift_body = gyr_drift
 gyr_drift_enu = C.transpose() @ gyr_drift_body
 plot_err_formula(
-    acc_err_enu[0],
-    acc_err_enu[1],
-    gyr_drift_enu[0],
-    gyr_drift_enu[1],
+    acc_err_enu[1][0],
+    acc_err_enu[0][0],
+    gyr_drift_enu[1][0],
+    gyr_drift_enu[0][0],
     G,
     6378245.0,
     sample_time,
     sample_time*data_frequency,
-    yaw,
+    heading,
     pitch
 ) 
 
 #%% вычисление ошибок выставки
 ae = navapi()
 ae.init(lat,lon, sample_time, data_frequency)
-ae.alignment_acc(mean(A_X), mean(A_Y), mean(A_Z), yaw) # выставка по значениям акселерометров
+ae.alignment_acc(mean(A_X), mean(A_Y), mean(A_Z), heading) # выставка по значениям акселерометров
 res = vec_body()
 ae.prh_after_alignment(res)
 print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))

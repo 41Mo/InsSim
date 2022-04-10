@@ -95,7 +95,8 @@ class navapi(object):
     def __init__(self):
         self.obj = api_so.Analysis_api_new()
 
-    def init(self, lat,lon, time,frequency):
+    def init(self, lat,lon, time,frequency, roll=0, pitch=0,yaw=0):
+        self.roll = roll; self.pitch=pitch; self.yaw=yaw;
         self.time = time
         self.dt = 1/frequency
         self.points = time*frequency
@@ -230,8 +231,8 @@ class navapi(object):
         yaw   = rad2deg(data.yaw[:points])*60
         v_e   = data.v_e[:points]
         v_n   = data.v_n[:points]
-        lat   = rad2deg(data.lat[:points])
-        lon   = rad2deg(data.lon[:points])
+        lat   = rad2deg(data.lat[:points])*60
+        lon   = rad2deg(data.lon[:points])*60
 
         d = PY_OUT(roll, pitch, yaw, v_e, v_n, lat, lon)
         return d
