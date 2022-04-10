@@ -75,7 +75,7 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     axs[1].plot(x_axis,  roll)
     axs[1].set_ylabel(pref+'$\gamma$, угл мин')
     axs[2].plot(x_axis, yaw, label="yaw")
-    axs[2].set_ylabel(pref+'$\psi$, угл мин')
+    axs[2].set_ylabel(pref+'$\psi$, угл. мин.')
     axs[2].set_xlabel("время, с")
     if save:
         plt.savefig("./images/"+"angles"+title+".jpg", bbox_inches='tight')
@@ -98,9 +98,9 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig.set_size_inches(size)
 
     axs[0].plot(x_axis, lat,label="lat")
-    axs[0].set_ylabel(pref+'$\\varphi$, угл мин')
+    axs[0].set_ylabel(pref+'$\\varphi$, угл. мин.')
     axs[1].plot(x_axis, lon,label="lon")
-    axs[1].set_ylabel(pref+'$\lambda$, угл мин')
+    axs[1].set_ylabel(pref+'$\lambda$, угл. мин.')
     axs[1].set_xlabel("время, с")
 
 

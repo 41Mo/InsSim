@@ -22,7 +22,7 @@ lon = math.radians(0) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
-data_frequency = 10 # Hz
+data_frequency = 100 # Hz
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
@@ -36,14 +36,14 @@ pitch = math.radians(0)
 
 # sensor errors
 acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
-acc_offset_y = 0.002 * 9.8 # [m/s/s] e.g 1 [mg]
-gyr_drift_x = math.radians(1)/3600 # 2 [deg/hour]
+acc_offset_y = 0.002 * 9.8 # [m/s/s] e.g 2 [mg]
+gyr_drift_x = math.radians(1)/3600 # 1 [deg/hour]
 gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
 # normal distribution param
-sigma_a = 0.0005 * 9.8 # mg
-sigma_g = math.radians(0.05) # 0.05 [deg/sec] 
-Tg = 0.2
-Ta = 0.3
+sigma_a = 0.001 * 9.8 # mg
+sigma_g = math.radians(0.07) # 0.07 [deg/sec] 
+Tg = 0.1
+Ta = 0.2
 """
     Config section end
 """
@@ -80,7 +80,7 @@ w_z = w_body[2][0];
 
 
 #%% генерация массивов случайной составляющей
-#"""
+"""
 A_X = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Y = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
 A_Z = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
@@ -90,7 +90,7 @@ G_Y = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
 G_Z = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
 
 size = (210/25.4, 297/25.4)
-fig1,axs1 = plt.subplots(6,2,constrained_layout=True, sharex='col')
+fig1,axs1 = plt.subplots(6,1,constrained_layout=True, sharex='col')
 fig1.set_size_inches(size)
 
 # строим автокорреляцию
@@ -119,29 +119,30 @@ G_Y = [g+gyr_drift_y+w_y for g in G_Y]
 G_Z = [g+w_z for g in G_Z]
 
 #''' графики случайного сигнала
-axs1[0,0].set_title("Сигнал акселерометров")
-axs1[3,0].set_title("Сигнал гироскопов")
+axs1[0].set_title("Сигнал акселерометров")
+axs1[3].set_title("Сигнал гироскопов")
 
 x_axis = np.linspace(0, sample_time, len(A_X))
 
-axs1[0, 0].plot(x_axis, A_X)
-axs1[0,0].set_ylabel("x, м/c/c")
-axs1[1, 0].plot(x_axis, A_Y)
-axs1[1,0].set_ylabel("y, м/c/c")
-axs1[2, 0].plot(x_axis, A_Z)
-axs1[2,0].set_ylabel("z, м/c/c")
-axs1[3, 0].plot(x_axis, rad2deg(G_X))
-axs1[3,0].set_ylabel("x, град/c")
-axs1[4, 0].plot(x_axis, rad2deg(G_Y))
-axs1[4,0].set_ylabel("y, град/c")
-axs1[5, 0].plot(x_axis, rad2deg(G_Z))
-axs1[5,0].set_ylabel("z, град/c")
-axs1[5,0].set_xlabel("время, c");
+axs1[0].plot(x_axis, A_X)
+axs1[0].set_ylabel("x, м/c/c")
+axs1[1].plot(x_axis, A_Y)
+axs1[1].set_ylabel("y, м/c/c")
+axs1[2].plot(x_axis, A_Z)
+axs1[2].set_ylabel("z, м/c/c")
+axs1[3].plot(x_axis, rad2deg(G_X))
+axs1[3].set_ylabel("x, град/c")
+axs1[4].plot(x_axis, rad2deg(G_Y))
+axs1[4].set_ylabel("y, град/c")
+axs1[5].plot(x_axis, rad2deg(G_Z))
+axs1[5].set_ylabel("z, град/c")
+axs1[5].set_xlabel("время, c");
 fig1.savefig("./images/"+"Сигналы датчиков"+".jpg", bbox_inches='tight')
 
 print("X: ", mean(A_X), "\n", "Y:", mean(A_Y), "\n", "Z:", mean(A_Z), "\n",
     "X:", mean(rad2deg(G_X)), "\n", "Y:", mean(rad2deg(G_Y)), "\n", "Z:", mean(rad2deg(G_Z)), "\n")
-#"""
+"""
+#'''
 #%% Сигнал датчиков без учета случайной составляющей
 #"""
 G_X = w_x+gyr_drift_x;

@@ -228,7 +228,7 @@ class navapi(object):
         # from radians to angle minutes
         roll  = rad2deg(data.roll[:points])*60 
         pitch = rad2deg(data.pitch[:points])*60
-        yaw   = rad2deg(data.yaw[:points])*60
+        yaw   = rad2deg(data.yaw[:points]) * 60
         v_e   = data.v_e[:points]
         v_n   = data.v_n[:points]
         lat   = rad2deg(data.lat[:points])*60
