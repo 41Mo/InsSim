@@ -53,7 +53,8 @@ api_so.api_init.restype = None
 api_so.api_init.argtypes = [
                             c_void_p, 
                             c_float, c_float,
-                            c_int, c_int
+                            c_int, c_int, c_int,
+                            c_bool
                             ]
 api_so.api_alignment_rph.restype = None
 api_so.api_alignment_rph.argtypes = [
@@ -95,13 +96,15 @@ class navapi(object):
     def __init__(self):
         self.obj = api_so.Analysis_api_new()
 
-    def init(self, lat,lon, time,frequency, roll=0, pitch=0,yaw=0):
+    def init(self, lat,lon, time,frequency, corr_time, corr_mode, roll=0, pitch=0,yaw=0):
         self.roll = roll; self.pitch=pitch; self.yaw=yaw;
         self.time = time
+        self.corr_time = corr_time
+        self.corr_mode = corr_mode
         self.dt = 1/frequency
         self.points = time*frequency
         self.lat = lat; self.lon=lon;
-        api_so.api_init(self.obj, lat,lon, time,frequency)
+        api_so.api_init(self.obj, lat,lon, time,frequency, corr_time, corr_mode)
 
     def loop(self):
         api_so.api_loop(self.obj)

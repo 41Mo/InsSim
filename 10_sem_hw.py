@@ -21,8 +21,10 @@ lat = math.radians(0) # phi
 lon = math.radians(0) # lambda
 
 # file with real sensors data
+corr_mode = True
 sample_time = 5400 # seconds
 data_frequency = 100 # Hz
+corr_time = 10 # period for determining correction factors
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
@@ -37,8 +39,8 @@ pitch = math.radians(0)
 # sensor errors
 acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
 acc_offset_y = 0.002 * 9.8 # [m/s/s] e.g 2 [mg]
-gyr_drift_x = math.radians(1)/3600 # 1 [deg/hour]
-gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
+gyr_drift_x = math.radians(-2)/3600 # 1 [deg/hour]
+gyr_drift_y = math.radians(1)/3600 # 2 [deg/hour]
 # normal distribution param
 sigma_a = 0.001 * 9.8 # mg
 sigma_g = math.radians(0.07) # 0.07 [deg/sec] 
@@ -49,7 +51,7 @@ Ta = 0.2
 """
 
 # задание начальных условий
-na.init(lat,lon, sample_time, data_frequency, roll, pitch, heading)
+na.init(lat,lon, sample_time, data_frequency, corr_time, corr_mode, roll, pitch, heading)
 
 # расчет матрицы перехода
 C = na.c_enu_body(heading, roll, pitch)
@@ -185,10 +187,10 @@ gyr_drift = np.array([
 gyr_drift_body = gyr_drift
 gyr_drift_enu = C.transpose() @ gyr_drift_body
 plot_err_formula(
-    acc_err_enu[1][0],
     acc_err_enu[0][0],
-    gyr_drift_enu[1][0],
+    acc_err_enu[1][0],
     gyr_drift_enu[0][0],
+    gyr_drift_enu[1][0],
     G,
     6378245.0,
     sample_time,
