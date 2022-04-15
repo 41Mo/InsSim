@@ -92,9 +92,17 @@ api_so.api_get_u.argtypes = None
 api_so.api_get_prh.restype = None
 api_so.api_get_prh.argtypes = [c_void_p, POINTER(vec_body)]
 
+api_so.api_set_corr.restype = None
+api_so.api_set_corr.argtypes = [c_int, c_bool]
+
 class navapi(object):
     def __init__(self):
         self.obj = api_so.Analysis_api_new()
+
+    def set_corr_mode(self, corr_time, corr_mode):
+        self.corr_time = corr_time
+        self.corr_mode = corr_mode
+        api_so.api_set_corr(self.obj, corr_time, corr_mode)
 
     def init(self, lat,lon, time,frequency, corr_time, corr_mode, roll=0, pitch=0,yaw=0):
         self.roll = roll; self.pitch=pitch; self.yaw=yaw;

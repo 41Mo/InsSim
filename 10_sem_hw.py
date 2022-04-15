@@ -21,12 +21,15 @@ lat = math.radians(0) # phi
 lon = math.radians(0) # lambda
 
 # file with real sensors data
-corr_mode = True
-sample_time = 5400 # seconds
+sample_time = 10800 # seconds
 data_frequency = 100 # Hz
-corr_time = 10 # period for determining correction factors
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
+
+# correction mode
+corr_mode = False
+corr_time = 10 # period for determining correction factors
+na.set_corr_mode(corr_time, corr_mode)
 
 ## alignment
 heading = math.radians(0)
@@ -51,7 +54,7 @@ Ta = 0.2
 """
 
 # задание начальных условий
-na.init(lat,lon, sample_time, data_frequency, corr_time, corr_mode, roll, pitch, heading)
+na.init(lat,lon, sample_time, data_frequency, roll, pitch, heading)
 
 # расчет матрицы перехода
 C = na.c_enu_body(heading, roll, pitch)
