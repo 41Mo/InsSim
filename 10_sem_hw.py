@@ -2,53 +2,58 @@
 import numpy as np
 import math as math
 
-from numpy import linspace as lp
-import matplotlib.pyplot as plt
+from numpy import mean
 
-from src.navapi import navapi
+from modules.libnav.interface.interface import NavIface, Tarr2f, Tarr3f
 from src.csv_parser import get_data_from_csv
-from src.white_noize_gen import gen_white_noize
-na = navapi()
+from src.plots import plot_err_formula, plots
+from src.sens_data_gen import data_gen
+from src.analysis import c_enu_body, rad2meters, rad2min
 #%%
 """
     Config section
 """
-G=na.get_G()
-U=na.get_U()
 # e.g Moscow
-lat = 55.75 # phi
-lon = 37.61 # lambda
+lat = math.radians(0) # phi
+lon = math.radians(0) # lambda
 
 # file with real sensors data
 sample_time = 5400 # seconds
-data_frequency = 100 # Hz
+data_frequency = 10 # Hz
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
 ## alignment
-yaw = math.radians(180)
-roll = math.radians(-2)
-pitch = math.radians(2)
+heading = math.radians(0)
+roll = math.radians(0)
+pitch = math.radians(0)
 # time for alignment in seconds
 #alignment_time = 60
 ## alignment
 
 # sensor errors
-acc_offset_x = 0.0005 * 9.8  # [m/s/s] e.g 1 [mg]
-acc_offset_y = 0.001 * 9.8 # [m/s/s] e.g 1 [mg]
-gyr_drift_x = math.radians(2)/3600 # 2 [deg/hour]
+acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
+acc_offset_y = 0.002 * 9.8 # [m/s/s] e.g 1 [mg]
+gyr_drift_x = math.radians(1)/3600 # 2 [deg/hour]
 gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
 # normal distribution param
 sigma_a = 0.0005 * 9.8 # mg
 sigma_g = math.radians(0.05) # 0.05 [deg/sec] 
+Tg = 0.2
+Ta = 0.3
 """
     Config section end
 """
 
-na.init(roll,pitch, yaw, lat, lon, sample_time, data_frequency)
-C = na.c_body_enu(yaw, roll, pitch)
+na = NavIface(lat,lon,data_frequency)
+G=na.G()
+U=na.U()
+# задание начальных условий
 
+# расчет матрицы перехода
+C = c_enu_body(heading, roll, pitch)
 
+# перепроецируем G из body->enu
 a_enu = np.array([
     [0],
     [0],
@@ -56,11 +61,11 @@ a_enu = np.array([
 ]
 )
 a_body = C@a_enu
-a_x = a_body[0];
-a_y = a_body[1];
-a_z = a_body[2];
+a_x = a_body[0][0];
+a_y = a_body[1][0];
+a_z = a_body[2][0];
 
-
+# перепроецируем W земли из body->enu
 w_enu = np.array([
     [0],
     [U*math.cos(lat)],
@@ -68,87 +73,132 @@ w_enu = np.array([
 ]
 )
 w_body = C@w_enu
-w_x = w_body[0];
-w_y = w_body[1];
-w_z = w_body[2];
+w_x = w_body[0][0];
+w_y = w_body[1][0];
+w_z = w_body[2][0];
 
+
+#%% генерация массивов случайной составляющей
+# 0,1,2 A_x,y,z
+# 3,4,5 G_x,y,z
+use_form_filter = False
+D = data_gen(use_form_filter,
+    [acc_offset_x, acc_offset_y],
+    [gyr_drift_x, gyr_drift_y],
+    [a_x, a_y, a_z],
+    [w_x, w_y, w_z],
+    sample_time, data_frequency,
+    Ta, Tg,
+    sigma_a, sigma_g,
+    False
+    )
+#%%
+na.nav().alignment_acc(mean(D[0]), mean(D[1]), mean(D[2]), heading)
+pry = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time)
+    )
+vel = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+)
+pos = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+)
+for i in range(0, data_frequency*sample_time):
+    if isinstance(D[0], list):
+        na.nav().iter(
+            (D[0])[i], (D[1])[i], (D[2])[i],
+            (D[3])[i], (D[4])[i], (D[5])[i]
+            )
+    else:
+        na.nav().iter(
+            (D[0]), (D[1]), (D[2]),
+            (D[3]), (D[4]), (D[5])
+            )
+    v = Tarr3f()
+    na.nav().pry(v)
+    for j in range(0,3):
+        pry[j][i] = rad2min(v[j])
+    na.nav().vel(v)
+    for j in range(0,2):
+        vel[j][i] = v[j]
+    v = Tarr2f()
+    na.nav().pos(v)
+    for j in range(0,2):
+        pos[j][i] = rad2meters(v[j])
 
 #%%
-
-A_X = gen_white_noize(sigma_a, sample_time, data_frequency)
-A_Y = gen_white_noize(sigma_a, sample_time, data_frequency)
-A_Z = gen_white_noize(sigma_a, sample_time, data_frequency)
-A_X = [a + acc_offset_x+a_x for a in A_X]
-A_Y = [a + acc_offset_y+a_y for a in A_Y]
-A_Z = [a+a_z for a in A_Z]
-
-x_axis = np.linspace(0, data_frequency, len(A_X))
-fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
-axs[0].plot(x_axis, A_X)
-axs[1].plot(x_axis, A_Y)
-axs[2].plot(x_axis, A_Z)
-plt.show()
-
-
-G_X = gen_white_noize(sigma_g, sample_time, data_frequency)
-G_Y = gen_white_noize(sigma_g, sample_time, data_frequency)
-G_Z = gen_white_noize(sigma_g, sample_time, data_frequency)
-G_X = [g+gyr_drift_x+w_x for g in G_X]
-G_Y = [g+gyr_drift_y+w_y for g in G_Y]
-G_Z = [g+w_z for g in G_Z]
-
-x_axis = np.linspace(0, data_frequency, len(G_X))
-fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
-axs[0].plot(x_axis, G_X)
-axs[1].plot(x_axis, G_Y)
-axs[2].plot(x_axis, G_Z)
-plt.show()
+#conv = na.convert_data(na.DATA)
+plots(pry,vel,pos, sample_time, data_frequency, title="моделир случ ", save=False)
+#d = na.make_err_model() # считаем ошибку
+#conv = na.convert_data(d) # переводим из си
+#na.plot_model(conv, title="Моделирования случайной ошибки", save=True, err=True)
 
 #%%
-G_X = gyr_drift_x+w_x;
-G_Y = gyr_drift_y+w_y;
-G_Z = w_z;
-A_X = acc_offset_x+a_x
-A_Y = acc_offset_y+a_y
-A_Z = a_z
+acc_offset = np.array([
+    [acc_offset_x],
+    [acc_offset_y],
+    [0]
+])
+acc_err_body = acc_offset
+acc_err_enu = C.transpose() @ acc_err_body 
+gyr_drift = np.array([
+    [gyr_drift_x],
+    [gyr_drift_y],
+    [0]
+])
+gyr_drift_body = gyr_drift
+gyr_drift_enu = C.transpose() @ gyr_drift_body
+plot_err_formula(
+    acc_err_enu[0][0],
+    acc_err_enu[1][0],
+    gyr_drift_enu[0][0],
+    gyr_drift_enu[1][0],
+    G,
+    6378245.0,
+    sample_time,
+    sample_time*data_frequency,
+    heading,
+    pitch
+) 
 
-#%%
-na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
-na.main()
+#%% вычисление ошибок выставки
+ae = NavIface(lat,lon, data_frequency)
 
-#%%
-na.plot_err_formula(acc_offset_x, acc_offset_y, gyr_drift_x, gyr_drift_y, G, 6378245.0, )
-#%%
-na.plots(na.DATA)
-#%%
-na.plot_err_model()
-#%%
-"""
-c_roll = hw._rph_angles[1]
-c_pitch = hw._rph_angles[0]
+na.nav().alignment_acc(mean(D[0]), mean(D[1]), mean(D[2]), heading)
+res = na.nav().align_prh()
+print(math.degrees(res[0]), math.degrees(res[1]), math.degrees(res[2]))
+c_pitch = res[0]; c_roll = res[1]
 
-#print("Roll: ", c_roll,
-# "Pitch", c_pitch,
-#)
-
-c_roll_err = abs(c_roll)-abs(math.radians(roll))
-c_pitch_err = abs(c_pitch)-abs(math.radians(pitch))
+# считаем ошибку, относительно значения из условия
+c_roll_err = c_roll-roll
+c_pitch_err = c_pitch-pitch
 
 print(
-"Model err pitch:", math.degrees(c_pitch_err), "\n",
-"Model err roll:", math.degrees(c_roll_err), "\n",
+"Ошбики при моделировании выставки в угловых минутах:\n",
+"по тангажу ", math.degrees(c_pitch_err)*60, "\n",
+"по крену ", math.degrees(c_roll_err)*60, "\n",
 )
 
-abz = G #hw.a_pre[2]
-abx = 0 #hw.a_pre[0]
-aby = 0 #hw.a_pre[1]
+abx = a_body[0] + acc_offset_x
+aby = a_body[1] + acc_offset_y
+abz = a_body[2]
 dabz = 0
 f_pitch_err = acc_offset_y / math.sqrt(math.pow(G,2) - math.pow(aby,2))
 f_roll_err = ((abx * dabz) - (acc_offset_x * abz)) / (pow(abx,2) + pow(abz,2))
 
 print(
-"Formula err pitch", math.degrees(f_pitch_err), "\n",
-"Formula err pitch", math.degrees(f_roll_err), "\n",
+"Ошибка выставки, полученные по формулам в угловых минутах\n",
+"по тангажу ", math.degrees(f_pitch_err)*60, "\n",
+"по крену", math.degrees(f_roll_err)*60, "\n",
 )
-print(math.degrees(abs(c_pitch_err) - abs(f_pitch_err)),math.degrees(abs(c_roll_err) - abs(f_roll_err)) )
-"""
+print(
+"Разница в определении ошибок в угловых минутах\n",
+"по тангажу ", math.degrees(c_pitch_err - f_pitch_err)*60, "\n",
+"по крену", math.degrees(c_roll_err - f_roll_err)*60
+)
+
+# %%

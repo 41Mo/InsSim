@@ -7,7 +7,7 @@ import src.nav_alg
 src.nav_alg = reload(src.nav_alg)
 from src.nav_alg import nav_alg
 from src.csv_parser import get_data_from_csv
-from src.white_noize_gen import gen_white_noize
+from src.white_noize_gen import gen_colour_noize
 
 import logging
 logging.basicConfig(
@@ -77,9 +77,9 @@ gyro_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_GYR = SENSOR_DATA
 if do_gen_white_noize:
-    SENSOR_DATA_GYR.update({ "Gyr_X": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_X"]), sample_time, data_frequency)})
-    SENSOR_DATA_GYR.update({ "Gyr_Y": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_Y"]), sample_time, data_frequency)})
-    SENSOR_DATA_GYR.update({ "Gyr_Z": gen_white_noize(np.std(SENSOR_DATA_GYR["Gyr_Z"]), sample_time, data_frequency)})
+    SENSOR_DATA_GYR.update({ "Gyr_X": gen_colour_noize(np.std(SENSOR_DATA_GYR["Gyr_X"]), sample_time, data_frequency)})
+    SENSOR_DATA_GYR.update({ "Gyr_Y": gen_colour_noize(np.std(SENSOR_DATA_GYR["Gyr_Y"]), sample_time, data_frequency)})
+    SENSOR_DATA_GYR.update({ "Gyr_Z": gen_colour_noize(np.std(SENSOR_DATA_GYR["Gyr_Z"]), sample_time, data_frequency)})
 else:
     SENSOR_DATA_GYR.update({ "Gyr_X":(SENSOR_DATA_GYR["Gyr_X"]-np.mean(SENSOR_DATA_GYR["Gyr_X"])) })
     SENSOR_DATA_GYR.update({ "Gyr_Y":(SENSOR_DATA_GYR["Gyr_Y"]-np.mean(SENSOR_DATA_GYR["Gyr_Y"])) })
@@ -92,9 +92,9 @@ acc_random_error_analysis.set_coordinates(lat, lon)
 
 SENSOR_DATA_ACC = SENSOR_DATA
 if do_gen_white_noize:
-    SENSOR_DATA_ACC.update({ "Acc_X": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_X"]), sample_time, data_frequency)})
-    SENSOR_DATA_ACC.update({ "Acc_Y": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_Y"]), sample_time, data_frequency)})
-    SENSOR_DATA_ACC.update({ "Acc_Z": gen_white_noize(np.std(SENSOR_DATA_ACC["Acc_Z"]), sample_time, data_frequency)})
+    SENSOR_DATA_ACC.update({ "Acc_X": gen_colour_noize(np.std(SENSOR_DATA_ACC["Acc_X"]), sample_time, data_frequency)})
+    SENSOR_DATA_ACC.update({ "Acc_Y": gen_colour_noize(np.std(SENSOR_DATA_ACC["Acc_Y"]), sample_time, data_frequency)})
+    SENSOR_DATA_ACC.update({ "Acc_Z": gen_colour_noize(np.std(SENSOR_DATA_ACC["Acc_Z"]), sample_time, data_frequency)})
 else:
     SENSOR_DATA_ACC.update({ "Acc_X":(SENSOR_DATA_ACC["Acc_X"]-np.mean(SENSOR_DATA_ACC["Acc_X"])) })
     SENSOR_DATA_ACC.update({ "Acc_Y":(SENSOR_DATA_ACC["Acc_Y"]-np.mean(SENSOR_DATA_ACC["Acc_Y"])) })
@@ -110,9 +110,9 @@ if use_alignment:
 
     SENSOR_DATA_ACC_W_A = SENSOR_DATA
     if do_gen_white_noize:
-        SENSOR_DATA_ACC_W_A.update({ "Acc_X": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_X"]), sample_time, data_frequency)})
-        SENSOR_DATA_ACC_W_A.update({ "Acc_Y": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Y"]), sample_time, data_frequency)})
-        SENSOR_DATA_ACC_W_A.update({ "Acc_Z": gen_white_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Z"]), sample_time, data_frequency)})
+        SENSOR_DATA_ACC_W_A.update({ "Acc_X": gen_colour_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_X"]), sample_time, data_frequency)})
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Y": gen_colour_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Y"]), sample_time, data_frequency)})
+        SENSOR_DATA_ACC_W_A.update({ "Acc_Z": gen_colour_noize(np.std(SENSOR_DATA_ACC_W_A["Acc_Z"]), sample_time, data_frequency)})
     else:
         SENSOR_DATA_ACC_W_A.update({ "Acc_X":(SENSOR_DATA_ACC_W_A["Acc_X"]-np.mean(SENSOR_DATA_ACC_W_A["Acc_X"])) })
         SENSOR_DATA_ACC_W_A.update({ "Acc_Y":(SENSOR_DATA_ACC_W_A["Acc_Y"]-np.mean(SENSOR_DATA_ACC_W_A["Acc_Y"])) })
