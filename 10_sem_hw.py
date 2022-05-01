@@ -2,20 +2,17 @@
 import numpy as np
 import math as math
 
-from numpy import mean, rad2deg
-import matplotlib.pyplot as plt
+from numpy import mean
 
-from src.navapi import navapi, vec_body
+from modules.libnav.interface.interface import NavIface, Tarr2f, Tarr3f
 from src.csv_parser import get_data_from_csv
-from src.white_noize_gen import gen_colour_noize
 from src.plots import plot_err_formula, plots
-na = navapi()
+from src.sens_data_gen import data_gen
+from src.analysis import c_enu_body, rad2meters, rad2min
 #%%
 """
     Config section
 """
-G=na.get_G()
-U=na.get_U()
 # e.g Moscow
 lat = math.radians(0) # phi
 lon = math.radians(0) # lambda
@@ -48,11 +45,13 @@ Ta = 0.3
     Config section end
 """
 
+na = NavIface(lat,lon,data_frequency)
+G=na.G()
+U=na.U()
 # задание начальных условий
-na.init(lat,lon, sample_time, data_frequency, roll, pitch, heading)
 
 # расчет матрицы перехода
-C = na.c_enu_body(heading, roll, pitch)
+C = c_enu_body(heading, roll, pitch)
 
 # перепроецируем G из body->enu
 a_enu = np.array([
@@ -80,93 +79,63 @@ w_z = w_body[2][0];
 
 
 #%% генерация массивов случайной составляющей
-#"""
-A_X = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
-A_Y = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
-A_Z = gen_colour_noize(sigma_a, Ta, sample_time, data_frequency)
-
-G_X = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
-G_Y = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
-G_Z = gen_colour_noize(sigma_g, Tg, sample_time, data_frequency)
-
-size = (210/25.4, 297/25.4)
-fig1,axs1 = plt.subplots(6,2,constrained_layout=True, sharex='col')
-fig1.set_size_inches(size)
-
-# строим автокорреляцию
-lags=4
-axs1[0,1].set_title("Автокорреляция")
-axs1[0,1].acorr(A_X,
-    usevlines=False, maxlags=lags, linestyle="solid", marker="");
-axs1[1,1].acorr(A_Y,
-    usevlines=False, maxlags=lags, linestyle="solid", marker="");
-axs1[2,1].acorr(A_Z,
-usevlines=False, maxlags=lags, linestyle="solid", marker="");
-axs1[3,1].acorr(G_X,
-usevlines=False, maxlags=lags, linestyle="solid", marker="");
-axs1[4,1].acorr(G_Y,
-usevlines=False, maxlags=lags, linestyle="solid", marker="");
-axs1[5,1].acorr(G_Z,
-usevlines=False, maxlags=lags, linestyle="solid", marker="");
-
-# добавляем к случайному составляющей измеряемое значение и дрейф
-A_X = [a + acc_offset_x+a_x for a in A_X]
-A_Y = [a + acc_offset_y+a_y for a in A_Y]
-A_Z = [a+a_z for a in A_Z]
-
-G_X = [g+gyr_drift_x+w_x for g in G_X]
-G_Y = [g+gyr_drift_y+w_y for g in G_Y]
-G_Z = [g+w_z for g in G_Z]
-
-#''' графики случайного сигнала
-axs1[0,0].set_title("Сигнал акселерометров")
-axs1[3,0].set_title("Сигнал гироскопов")
-
-x_axis = np.linspace(0, sample_time, len(A_X))
-
-axs1[0, 0].plot(x_axis, A_X)
-axs1[0,0].set_ylabel("x, м/c/c")
-axs1[1, 0].plot(x_axis, A_Y)
-axs1[1,0].set_ylabel("y, м/c/c")
-axs1[2, 0].plot(x_axis, A_Z)
-axs1[2,0].set_ylabel("z, м/c/c")
-axs1[3, 0].plot(x_axis, rad2deg(G_X))
-axs1[3,0].set_ylabel("x, град/c")
-axs1[4, 0].plot(x_axis, rad2deg(G_Y))
-axs1[4,0].set_ylabel("y, град/c")
-axs1[5, 0].plot(x_axis, rad2deg(G_Z))
-axs1[5,0].set_ylabel("z, град/c")
-axs1[5,0].set_xlabel("время, c");
-fig1.savefig("./images/"+"Сигналы датчиков"+".jpg", bbox_inches='tight')
-
-print("X: ", mean(A_X), "\n", "Y:", mean(A_Y), "\n", "Z:", mean(A_Z), "\n",
-    "X:", mean(rad2deg(G_X)), "\n", "Y:", mean(rad2deg(G_Y)), "\n", "Z:", mean(rad2deg(G_Z)), "\n")
-#"""
-#%% Сигнал датчиков без учета случайной составляющей
-#"""
-G_X = w_x+gyr_drift_x;
-G_Y = w_y+gyr_drift_y;
-G_Z = w_z
-A_X = a_x + acc_offset_x
-A_Y = a_y + acc_offset_y
-A_Z = a_z
-#"""
-
+# 0,1,2 A_x,y,z
+# 3,4,5 G_x,y,z
+use_form_filter = False
+D = data_gen(use_form_filter,
+    [acc_offset_x, acc_offset_y],
+    [gyr_drift_x, gyr_drift_y],
+    [a_x, a_y, a_z],
+    [w_x, w_y, w_z],
+    sample_time, data_frequency,
+    Ta, Tg,
+    sigma_a, sigma_g,
+    False
+    )
 #%%
-na.alignment_acc(mean(A_Y), mean(A_X), mean(A_Z), heading)
-res = vec_body()
-na.prh_after_alignment(res)
-print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))
-# записываем данные в навигационный алгоритм и начинаем расчет
-na.set_sens_data(A_X, A_Y, A_Z, G_X, G_Y, G_Z)
-na.main()
+na.nav().alignment_acc(mean(D[0]), mean(D[1]), mean(D[2]), heading)
+pry = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time)
+    )
+vel = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+)
+pos = (
+    [0]*(data_frequency*sample_time),
+    [0]*(data_frequency*sample_time),
+)
+for i in range(0, data_frequency*sample_time):
+    if isinstance(D[0], list):
+        na.nav().iter(
+            (D[0])[i], (D[1])[i], (D[2])[i],
+            (D[3])[i], (D[4])[i], (D[5])[i]
+            )
+    else:
+        na.nav().iter(
+            (D[0]), (D[1]), (D[2]),
+            (D[3]), (D[4]), (D[5])
+            )
+    v = Tarr3f()
+    na.nav().pry(v)
+    for j in range(0,3):
+        pry[j][i] = rad2min(v[j])
+    na.nav().vel(v)
+    for j in range(0,2):
+        vel[j][i] = v[j]
+    v = Tarr2f()
+    na.nav().pos(v)
+    for j in range(0,2):
+        pos[j][i] = rad2meters(v[j])
 
 #%%
 #conv = na.convert_data(na.DATA)
-#plots(conv, na.time, na.points, title="моделир случ ", save=True)
-d = na.make_err_model() # считаем ошибку
-conv = na.convert_data(d) # переводим из си
-na.plot_model(conv, title="Моделирования случайной ошибки", save=True, err=True)
+plots(pry,vel,pos, sample_time, data_frequency, title="моделир случ ", save=False)
+#d = na.make_err_model() # считаем ошибку
+#conv = na.convert_data(d) # переводим из си
+#na.plot_model(conv, title="Моделирования случайной ошибки", save=True, err=True)
 
 #%%
 acc_offset = np.array([
@@ -184,10 +153,10 @@ gyr_drift = np.array([
 gyr_drift_body = gyr_drift
 gyr_drift_enu = C.transpose() @ gyr_drift_body
 plot_err_formula(
-    acc_err_enu[1][0],
     acc_err_enu[0][0],
-    gyr_drift_enu[1][0],
+    acc_err_enu[1][0],
     gyr_drift_enu[0][0],
+    gyr_drift_enu[1][0],
     G,
     6378245.0,
     sample_time,
@@ -197,13 +166,12 @@ plot_err_formula(
 ) 
 
 #%% вычисление ошибок выставки
-ae = navapi()
-ae.init(lat,lon, sample_time, data_frequency)
-ae.alignment_acc(mean(A_X), mean(A_Y), mean(A_Z), heading) # выставка по значениям акселерометров
-res = vec_body()
-ae.prh_after_alignment(res)
-print(math.degrees(res.X), math.degrees(res.Y), math.degrees(res.Z))
-c_pitch = res.X; c_roll = res.Y
+ae = NavIface(lat,lon, data_frequency)
+
+na.nav().alignment_acc(mean(D[0]), mean(D[1]), mean(D[2]), heading)
+res = na.nav().align_prh()
+print(math.degrees(res[0]), math.degrees(res[1]), math.degrees(res[2]))
+c_pitch = res[0]; c_roll = res[1]
 
 # считаем ошибку, относительно значения из условия
 c_roll_err = c_roll-roll

@@ -42,23 +42,13 @@ def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points, psi, s_teta):
 
     fig.savefig("./images/"+"По формулам"+".jpg", bbox_inches='tight')
 
-def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="", err:bool=False):
+def plots(pry, vel, pos, time, freq, size:Tuple=(140,170), save:bool=False, title:str="", err:bool=False):
     """
     generate 1 plot with 7 subplots
     - orientation angles
     - speed
     - coordinates
-    additional debug plots:
-    - a_e, a_n, a_up
-    - w_e, w_n, w_up
     """
-    roll =  data.roll[:points]
-    pitch = data.pitch[:points]
-    yaw = data.yaw[:points]
-    v_e = data.v_e[:points]
-    v_n = data.v_n[:points]
-    lat = data.lat[:points]
-    lon = data.lon[:points]
 
     if err:
         pref="$\Delta$"
@@ -69,12 +59,12 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
 
     fig,axs = plt.subplots(3,1,sharex=True,constrained_layout=True)
     fig.set_size_inches(size)
-    x_axis = lp(0, time, points)
-    axs[0].plot(x_axis, pitch)
+    x_axis = lp(0, time, time*freq)
+    axs[0].plot(x_axis, pry[0])
     axs[0].set_ylabel(pref+'$\\theta$, угл мин')
-    axs[1].plot(x_axis,  roll)
+    axs[1].plot(x_axis,  pry[1])
     axs[1].set_ylabel(pref+'$\gamma$, угл мин')
-    axs[2].plot(x_axis, yaw, label="yaw")
+    axs[2].plot(x_axis, pry[2], label="yaw")
     axs[2].set_ylabel(pref+'$\psi$, угл мин')
     axs[2].set_xlabel("время, с")
     if save:
@@ -84,9 +74,9 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
     fig.set_size_inches(size)
 
-    axs[0].plot(x_axis, v_e)
+    axs[0].plot(x_axis, vel[0])
     axs[0].set_ylabel(pref+'$V_E$, м/c')
-    axs[1].plot(x_axis, v_n)
+    axs[1].plot(x_axis, vel[1])
     axs[1].set_ylabel(pref+'$V_N$, м/c')
     axs[1].set_xlabel("время, с")
 
@@ -97,9 +87,9 @@ def plots(data, time, points, size:Tuple=(140,170), save:bool=False, title:str="
     fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
     fig.set_size_inches(size)
 
-    axs[0].plot(x_axis, lat,label="lat")
+    axs[0].plot(x_axis, pos[0],label="lat")
     axs[0].set_ylabel(pref+'$\\varphi$, угл мин')
-    axs[1].plot(x_axis, lon,label="lon")
+    axs[1].plot(x_axis, pos[1],label="lon")
     axs[1].set_ylabel(pref+'$\lambda$, угл мин')
     axs[1].set_xlabel("время, с")
 
