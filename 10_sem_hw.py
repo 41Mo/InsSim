@@ -5,7 +5,6 @@ import math as math
 from numpy import mean
 
 from modules.libnav.interface.interface import NavIface, Tarr2f, Tarr3f
-from src.csv_parser import get_data_from_csv
 from src.plots import plot_err_formula, plots
 from src.sens_data_gen import data_gen
 from src.analysis import c_enu_body, rad2meters, rad2min
