@@ -121,7 +121,7 @@ for i in range(0, data_frequency*sample_time):
     v = Tarr3f()
     na.nav().pry(v)
     for j in range(0,3):
-        pry[j][i] = rad2min(v[j])
+        pry[j][i] = rad2min(v[j]-ini_pry[j])
     na.nav().vel(v)
     for j in range(0,2):
         vel[j][i] = v[j]
@@ -132,7 +132,7 @@ for i in range(0, data_frequency*sample_time):
 
 #%%
 #conv = na.convert_data(na.DATA)
-plots(pry,vel,pos, sample_time, data_frequency, title="моделир случ ", save=False)
+plots(pry,vel,pos, sample_time, data_frequency, title="моделир случ ", err=True, save=False)
 #d = na.make_err_model() # считаем ошибку
 #conv = na.convert_data(d) # переводим из си
 #na.plot_model(conv, title="Моделирования случайной ошибки", save=True, err=True)
@@ -152,7 +152,7 @@ gyr_drift = np.array([
 ])
 gyr_drift_body = gyr_drift
 gyr_drift_enu = C.transpose() @ gyr_drift_body
-plot_err_formula(
+EQUAT = plot_err_formula(
     acc_err_enu[0][0],
     acc_err_enu[1][0],
     gyr_drift_enu[0][0],
@@ -164,6 +164,38 @@ plot_err_formula(
     heading,
     pitch
 ) 
+
+#%%
+print("Maximum difference between equational and alg pitch,roll")
+for i in range(0,2):
+    print(
+        np.max(
+        abs(
+            EQUAT[0][i] - np.array(pry[i])
+        )
+        ) /60
+    )
+
+print("Maximum difference between equational vel and alg vel v_e, v_n")
+for i in range(0,2):
+    print(
+        np.max(
+        abs(
+            EQUAT[1][i] - np.array(vel[i])
+        )
+        )
+    )
+
+print("Maximum difference between equational pos and alg pos lat, lon")
+for i in range(0,2):
+    print(
+        np.max(
+        abs(
+            EQUAT[2][i] - np.array(pos[i])
+        )
+        ) /60
+    )
+print("misc")
 
 #%% вычисление ошибок выставки
 ae = NavIface(lat,lon, data_frequency)
