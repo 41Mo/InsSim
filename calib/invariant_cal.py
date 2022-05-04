@@ -167,6 +167,23 @@ H_Z_sum = H[0].transpose() @ Z[0]
 for i in range(1, 6):
     H_Z_sum += H[i].transpose() @ Z[i]
 X = linalg.inv(H_sum) * H_Z_sum
+
+estimation = pd.DataFrame({
+    "alpha_x" : X[0,0],
+    "alpha_y": X[1,0],
+    "alpha_z":X[2,0],
+    "alpha_xx":X[3,0],
+    "alpha_yy":X[4,0],
+    "alpha_zz":X[5,0],
+    "alpha_yz":X[6,0],
+    "alpha_zx":X[7,0],
+    "alpha_zy":X[8,0],
+    "mu_x":X[9,0],
+    "mu_y":X[10,0],
+    "mu_z":X[11,0],
+    "hi_x":X[12,0],
+    "hi_y":array([X[13,0]] * 1, dtype="float"),
+})
 #%%
 #for i in range(6):
 #    for j in range(3):
@@ -214,13 +231,15 @@ dr = array([
     X[0,0],X[1,0],X[2,0]
 ])
 
-for i in range(6):
+for i in range(2):
     a = dfs[i].loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
     points = len(a)
     frq = 100
     time = points/frq
     time_axis = linspace(0, time, points)
+    print("Было ax, ay, az")
     print((a[0])[:,newaxis])
+    print("Стало ax, ay, az")
     print((a[0])[:,newaxis]-dr[:,newaxis]*g)
 #print(t1@((a[0])[:,newaxis])-dr[:,newaxis])
 
