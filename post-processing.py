@@ -3,7 +3,8 @@ import math
 from modules.libnav.interface.interface import NavIface
 import pandas as pd
 import numpy as np
-import matplotlib as mtpl
+%matplotlib
+import matplotlib.pyplot as plt
 
 df = pd.read_csv('csv_data/Sensors_and_orientation.csv', delimiter=';')
 acc = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
@@ -71,13 +72,13 @@ df2 = pd.DataFrame(
 size = (140/25.4, 170/25.4)
 # To get a list of all of the styles available from Mathplotlib use the following command.
 # plt.style.available
-mtpl.style.use('fivethirtyeight')
+plt.style.use('fivethirtyeight')
 df2.plot(
     x="Time", y=["Pitch", "Roll", "Hdg"],
     grid=True,
     figsize=size,
     subplots=True,
-    layout=(3,1)
+    layout=(3,1),
 )
 # %%
 df2.plot(
