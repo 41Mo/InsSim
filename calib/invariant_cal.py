@@ -3,37 +3,40 @@
 import sys
 sys.path.insert(0, '../src/')
 import pandas as pd
-from matplotlib import pyplot as plt
 from filter import filter
-log_dir = 'logs/'
-dfs = []
-dfs.append(
-    pd.read_csv(log_dir+'00g.csv', delimiter=';', skiprows=12)
-)
-dfs.append(
-    pd.read_csv(log_dir+'00-g.csv', delimiter=';', skiprows=12)
-)
-dfs.append(
-    pd.read_csv(log_dir+'0g0.csv', delimiter=';', skiprows=12)
-)
-dfs.append(
-    pd.read_csv(log_dir+'0-g0.csv', delimiter=';', skiprows=12)
-)
-dfs.append(
-    pd.read_csv(log_dir+'g00.csv', delimiter=';', skiprows=12)
-)
-dfs.append(
-    pd.read_csv(log_dir+'-g00.csv', delimiter=';', skiprows=12)
-)
+from numpy import *
+import matplotlib.pyplot as plt
+def read_logs(path='logs'):
+    path+='/'
+    dataframes_list = []
+    rows_to_skip=5
+    dataframes_list.append(
+        pd.read_csv(path+'00g.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    dataframes_list.append(
+        pd.read_csv(path+'00-g.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    dataframes_list.append(
+        pd.read_csv(path+'0g0.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    dataframes_list.append(
+        pd.read_csv(path+'0-g0.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    dataframes_list.append(
+        pd.read_csv(path+'g00.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    dataframes_list.append(
+        pd.read_csv(path+'-g00.csv', delimiter=';', skiprows=rows_to_skip)
+    )
+    return dataframes_list
 
+dfs = read_logs('../binary_output/invariant_cube/aks2')
 acc = []
 for df in dfs:
-#acc = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
     acc.append(
-        (df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy())[int(df.shape[0]/2)]
+        mean((df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()),axis=0)
     )
 #%%
-from numpy import *
 g = 9.80665
 ai = eye(3,3)
 aii0 = zeros(shape=(3,3))
@@ -89,22 +92,22 @@ hi5=hi4.copy()
 H = array((
     block([
         ai, aii0, aij0,mu0,hi0
-    ]),
+    ])*g,
     block([
         ai, aii1, aij1, mu1,hi1
-    ]),
+    ])*g,
     block([
         ai, aii2, aij2, mu2,hi2
-    ]),
+    ])*g,
     block([
         ai, aii3, aij3, mu3,hi3
-    ]),
+    ])*g,
     block([
         ai, aii4, aij4, mu4,hi4
-    ]),
+    ])*g,
     block([
         ai, aii5, aij5, mu5,hi5
-    ]),
+    ])*g,
 
 
 ))
@@ -139,109 +142,147 @@ C = array((
 ))
 G=matrix([[0],[0],[g]]) 
 
-# 0 0 g: Acc X: 0.00931, Acc Y: 0.21046, Acc Z: 10.057685
-# 0 0 -g:Acc X: -0.00699, Acc Y: 0.14197, Acc Z: -9.5796832
-# 0 g 0 : Acc X: -0.00373, Acc Y: 9.81994, Acc Z: 1.01122
-# 0 -g 0: Acc X: -0.08805, Acc Y: -9.78619, Acc Z: -0.13522
-# g 0 0: Acc X: 9.80955, Acc Y: 0.10599, Acc Z: 0.164297
-# -g 0 0: Acc X: -9.82616, Acc Y: 0.08760, Acc Z: 0.545101
-
-#a = array((
-#    [[-0.002924], [0.011318], [10.026368]],
-#    [[-0.00699], [0.14197], [-9.5796832]],
-#    [[-0.00373], [9.81994], [1.01122]],
-#    [[-0.08805], [-9.78619], [-0.13522]],
-#    [[9.80955], [0.10599], [0.164297]],
-#    [[-9.82616], [0.08760], [0.545101]],
-#))
+#%%
 Z = []
 for i in range(6):
-    Z.append(acc[i][:,newaxis] - C[i]*G)
+    Z.append(acc[i][:,newaxis] - C[i]@G)
 
 H_sum = H[0].transpose() @ H[0]
 for i in range(1, 6):
     H_sum += H[i].transpose() @ H[i]
-linalg.det(H_sum)
+H_sum = linalg.inv(H_sum)
 
 H_Z_sum = H[0].transpose() @ Z[0]
 for i in range(1, 6):
     H_Z_sum += H[i].transpose() @ Z[i]
-X = linalg.inv(H_sum) * H_Z_sum
 
-estimation = pd.DataFrame({
-    "alpha_x" : X[0,0],
-    "alpha_y": X[1,0],
-    "alpha_z":X[2,0],
-    "alpha_xx":X[3,0],
-    "alpha_yy":X[4,0],
-    "alpha_zz":X[5,0],
-    "alpha_yz":X[6,0],
-    "alpha_zx":X[7,0],
-    "alpha_zy":X[8,0],
-    "mu_x":X[9,0],
-    "mu_y":X[10,0],
-    "mu_z":X[11,0],
-    "hi_x":X[12,0],
-    "hi_y":array([X[13,0]] * 1, dtype="float"),
+X =  H_sum @ H_Z_sum
+
+estimation_pre = pd.DataFrame({
+    "alpha_x" : X[0,0], "alpha_y": X[1,0], "alpha_z":X[2,0],
+    "alpha_xx":X[3,0], "alpha_yy":X[4,0], "alpha_zz":X[5,0],
+    "alpha_yz":X[6,0], "alpha_zx":X[7,0], "alpha_zy":X[8,0],
+    "mu_x":X[9,0], "mu_y":X[10,0], "mu_z":X[11,0],
+    "hi_x":X[12,0], "hi_y":array([X[13,0]] * 1, dtype="float"),
 })
+estimation_pre
 #%%
-#for i in range(6):
-#    for j in range(3):
-#        ai_hat = matrix([
-#            [X[0,0]],
-#            [X[1,0]],
-#            [X[2,0]],
-#        ])
-#        aij_hat = matrix([
-#            [X[3,0],0,0],
-#            [X[6,0],X[4,0],0],
-#            [X[7,0],X[8,0],X[5,0]],
-#        ])
-#        mu_hat = matrix([
-#            [1,X[11,0],-X[10,0]],
-#            [-X[11,0],1,X[9,0]],
-#            [X[10,0],-X[9,0],1],
-#        ])
-#        hi_hat = matrix([
-#            [1, 0, -X[13,0]],
-#            [0,1,X[12,0]],
-#            [X[13,0],-X[12,0],1]
-#        ])
-#        Z_hat = ai_hat*g + aij_hat*mu_hat*C[i]*G- C[i]*G
-#        H_Z_sum += H[i].transpose() @ (Z[i]-Z_hat)
-#        X = X+linalg.inv(H_sum) * H_Z_sum
-#
-#%%
+H_Z_sum = zeros(shape=shape(H_Z_sum))
+for i in range(3):
+    ai_hat = matrix([
+        [X[0,0]],
+        [X[1,0]],
+        [X[2,0]],
+    ])
+    aij_hat = matrix([
+        [1+X[3,0],0,0],
+        [X[6,0],1+X[4,0],0],
+        [X[7,0],X[8,0],1+X[5,0]],
+    ])
+    mu_hat = matrix([
+        [1,X[11,0],-X[10,0]],
+        [-X[11,0],1,X[9,0]],
+        [X[10,0],-X[9,0],1],
+    ])
+    hi_hat = matrix([
+        [1, 0, -X[13,0]],
+        [0,1,X[12,0]],
+        [X[13,0],-X[12,0],1]
+    ])
+    Z_hat = ai_hat*g + aij_hat@mu_hat@C[i]@hi_hat@G - C[i]@G
+    H_Z_sum += H[i].transpose() @ (Z[i]-Z_hat)
+    X = X+H_sum @ H_Z_sum
+estimation_fin = pd.DataFrame({
+    "alpha_x" : X[0,0], "alpha_y": X[1,0], "alpha_z":X[2,0],
+    "alpha_xx":X[3,0], "alpha_yy":X[4,0], "alpha_zz":X[5,0],
+    "alpha_yz":X[6,0], "alpha_zx":X[7,0], "alpha_zy":X[8,0],
+    "mu_x":X[9,0], "mu_y":X[10,0], "mu_z":X[11,0],
+    "hi_x":X[12,0], "hi_y":array([X[13,0]] * 1, dtype="float"),
+})
+estimation_fin
+#%% compensation test
 
-#df = pd.read_csv('../csv_data/Sensors_and_orientation.csv', delimiter=';')
+dfn = pd.read_csv('../csv_data/Sensors_and_orientation.csv', delimiter=';')
 
-#t1= linalg.inv(matrix([
-#    [1+X[3,0], 0, 0],
-#    [1+X[6,0], 1+X[4,0],0],
-#    [X[7,0], X[8,0], 1+X[5,0]]
-#]))
-
-t1= matrix([
+t1= linalg.inv(matrix([
     [1+X[3,0], 0, 0],
     [1+X[6,0], 1+X[4,0],0],
     [X[7,0], X[8,0], 1+X[5,0]]
-])
+]))
 
 dr = array([
     X[0,0],X[1,0],X[2,0]
 ])
 
+a = dfn.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
+#%%
+points = len(a)
+frq = 100
+time = points/frq
+time_axis = linspace(0, time, points)
+
 for i in range(2):
-    a = dfs[i].loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
-    points = len(a)
-    frq = 100
-    time = points/frq
-    time_axis = linspace(0, time, points)
     print("Было ax, ay, az")
     print((a[0])[:,newaxis])
     print("Стало ax, ay, az")
-    print((a[0])[:,newaxis]-dr[:,newaxis]*g)
-#print(t1@((a[0])[:,newaxis])-dr[:,newaxis])
+    print( t1@((a[0])[:,newaxis]-dr[:,newaxis]*g) )
+
+result = []
+for vec in a:
+    result.append(
+        t1@(vec[:,newaxis]-dr[:,newaxis]*g)
+    )
+result = array(result)
+result = squeeze(result)
+#%%
+T=10
+slice_from = 15000
+res_df = pd.DataFrame({
+    "Time":time_axis[slice_from:],
+    "AccX_before_cal":(a[:,0])[slice_from:],
+    "AccY_before_cal":(a[:,1])[slice_from:],
+    "AccZ_before_cal":(a[:,2])[slice_from:],
+    "AccX_after_cal": (result[:,0])[slice_from:],
+    "AccY_after_cal": (result[:,1])[slice_from:],
+    "AccZ_after_cal": (result[:,2])[slice_from:],
+    "AccX_before_cal_f": filter(a[:,0], T=T)[slice_from:],
+    "AccY_before_cal_f": filter(a[:,1], T=T)[slice_from:],
+    "AccZ_before_cal_f": filter(a[:,2], T=T)[slice_from:],
+    "AccX_after_cal_f": filter(result[:,0], T=T)[slice_from:],
+    "AccY_after_cal_f": filter(result[:,1], T=T)[slice_from:],
+    "AccZ_after_cal_f": filter(result[:,2], T=T)[slice_from:],
+})
+#%%
+size = (140*2/25.4, 170*2/25.4)
+plt.style.use('fivethirtyeight')
+dump = res_df.plot(
+    x="Time",
+    subplots=True,
+    layout=[3,2],
+    figsize=size,
+    y=[
+        "AccX_before_cal", "AccX_after_cal",
+        "AccY_before_cal", "AccY_after_cal",
+        "AccZ_before_cal", "AccZ_after_cal",
+    ]
+)
+#%%
+size = (400/25.4, 170/25.4)
+dump = res_df.plot(
+    x="Time",
+    figsize=size,
+    y=[
+        "AccX_before_cal_f", "AccX_after_cal_f",
+        "AccY_before_cal_f", "AccY_after_cal_f",
+    ]
+)
+
+dump = res_df.plot(
+    x="Time",
+    figsize=size,
+    y=[
+        "AccZ_before_cal_f", "AccZ_after_cal_f",
+    ]
+)
 
 # %%
-(t1*(a - dr*g).transpose()).transpose()

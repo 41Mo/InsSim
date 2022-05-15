@@ -116,11 +116,11 @@ def parse_log(type:str, log_file, log_output):
         s+='//  ProductCode: MTI-3-8A7G6\n'
         s+='//  Firmware Version: 1.0.2\n//  Hardware Version: 1.0.0\n'
         s+='//  Units:\n'
-        s+='//  Acc: m/s/s\n'
-        s+='//  Gyr: deg/s\n'
         if (type=="aks"):
+            s+='//  Acc: m/s/s\n'
             s += "Acc_X;Acc_Y;Acc_Z\n"
         if (type=="gyr"):
+            s+='//  Gyr: rad/s\n'
             s += "Gyr_X;Gyr_Y;Gyr_Z\n"
         index = 0
         while index < packetCount:
@@ -181,7 +181,7 @@ def parse_log(type:str, log_file, log_output):
 
 
 set_number = 1
-sensor = "aks"
+sensor = "gyr"
 log_dir = "/invariant_cube/"+sensor+str(set_number)
 source_dir = os.path.dirname(os.path.abspath(__file__)) + log_dir
 files_list = []
