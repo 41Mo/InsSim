@@ -30,7 +30,7 @@ def read_logs(path='logs'):
     )
     return dataframes_list
 
-dfs = read_logs('../binary_output/invariant_cube/aks2')
+dfs = read_logs('../binary_output/invariant_cube/aks1')
 acc = []
 for df in dfs:
     acc.append(

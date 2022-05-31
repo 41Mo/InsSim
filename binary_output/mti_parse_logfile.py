@@ -127,14 +127,19 @@ def parse_log(type:str, log_file, log_output):
             # Retrieve a packet
             packet = device.getDataPacketByIndex(index)
 
-            if packet.containsCalibratedData():
-                if (type == "aks"):
+            if (type == "aks"):
+                if packet.containsAccelerationHR():
+                    packet.accelerationHR()
+                if packet.containsRawAcceleration():
+                    acc = packet.rawAcceleration()
+                if packet.containsCalibratedAcceleration():
                     acc = packet.calibratedAcceleration()
-                    s += "%.6f;" % acc[0] + "%.6f;" % acc[1] + "%.6f" % acc[2]
-                
-                if (type == "gyr"):
+                s += "%.6f;" % acc[0] + "%.6f;" % acc[1] + "%.6f" % acc[2]
+            
+            if (type == "gyr"):
+                if packet.containsCalibratedGyroscopeData():
                     gyr = packet.calibratedGyroscopeData()
-                    s += "%.6f;" % gyr[0] + "%.2f;" % gyr[1] + "%.2f" % gyr[2]
+                s += "%.6f;" % gyr[0] + "%.6f;" % gyr[1] + "%.6f" % gyr[2]
 
                 #mag = packet.calibratedMagneticField()
                 #s += " |Mag X: %.2f" % mag[0] + ", Mag Y: %.2f" % mag[1] + ", Mag Z: %.2f" % mag[2]
@@ -182,7 +187,7 @@ def parse_log(type:str, log_file, log_output):
 
 set_number = 1
 sensor = "gyr"
-log_dir = "/invariant_cube/"+sensor+str(set_number)
+log_dir = "/invariant_cube_1/"+sensor+str(set_number)
 source_dir = os.path.dirname(os.path.abspath(__file__)) + log_dir
 files_list = []
 for root, dirs, files in os.walk(source_dir):
