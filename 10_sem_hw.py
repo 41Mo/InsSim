@@ -8,6 +8,7 @@ from numpy import deg2rad, mean
 from modules.libnav.interface.interface import Nav, NavIface, Tarr2f, Tarr3f
 from src.plots import plot_err_formula, plots
 from src.sens_data_gen import data_gen
+from src.filter import filter
 from src.analysis import c_enu_body, rad2meters, rad2min
 from numpy.random import normal as rndnorm
 import pandas as pd
@@ -18,8 +19,8 @@ import math as m
     Config section
 """
 # e.g Moscow 55.7522200 37.6155600
-lat = math.radians(56) # phi
-lon = math.radians(0) # lambda
+lat = math.radians(55.7522200) # phi
+lon = math.radians(37.6155600) # lambda
 ini_pos = [lat, lon]
 # file with real sensors data
 sample_time = 90*60 # seconds
@@ -28,27 +29,27 @@ save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
 
 ## alignment
-heading = math.radians(180)
-roll = math.radians(-2)
-pitch = math.radians(2)
+heading = math.radians(322)
+roll = math.radians(0.01)
+pitch = math.radians(0.02)
 ini_pry = [pitch, roll, heading]
 # time for alignment in seconds
 #alignment_time = 60
 ## alignment
 
 # sensor errors
-acc_offset_x = 0.001 * 9.8  # [m/s/s] e.g 1 [mg]
-acc_offset_y = 0.001 * 9.8 # [m/s/s] e.g 1 [mg]
-gyr_drift_x = math.radians(2)/3600 # 2 [deg/hour]
-gyr_drift_y = math.radians(2)/3600 # 2 [deg/hour]
+acc_offset_x = 2* 1e-3 * 9.8  # [m/s/s] e.g 1 [mg]
+acc_offset_y = 2* 1e-3 * 9.8 # [m/s/s] e.g 1 [mg]
+gyr_drift_x = math.radians(6)/3600 # 2 [deg/hour]
+gyr_drift_y = math.radians(6)/3600 # 2 [deg/hour]
 # normal distribution param
-sigma_a = 0.5 * 1e-3 * 9.8 # mg
-sigma_g = math.radians(0.05) # 0.05 [deg/sec] 
+sigma_a = 0.2 * 1e-3 * 9.8 # mg
+sigma_g = math.radians(0.1) # 0.05 [deg/sec] 
 gnss_std = m.radians((3/m.sqrt(1/data_frequency))/111111)
 gnss_offset = 0#math.radians(10/111111)
 Tg = 0.2
 Ta = 0.3
-gnss_TIME = 30
+gnss_TIME = 33
 gnss_OFF = 10*60
 gnss_ON = gnss_OFF+ 4*60
 
@@ -167,7 +168,8 @@ D = data_gen(True,
     sigma_a, sigma_g,
     False
     )
-ALG_DATA_CORR = alg_loop(gnss_t=gnss_TIME, corr=True, mid_off=False)
+#%%
+ALG_DATA_CORR = alg_loop(gnss_t=gnss_TIME, corr=True, mid_off=True)
 #ALG_DATA_NOCORR = alg_loop(gnss_t=gnss_TIME, use_form_filter=False, corr=False)
 
 acc_offset = np.array([
@@ -215,61 +217,76 @@ df = pd.DataFrame({
 #    "phi_nocorr": ALG_DATA_NOCORR[2][0],
 #    "lamda_nocorr": ALG_DATA_NOCORR[2][1],
 })
-
+df1 = pd.DataFrame({ 
+    "Time": np.linspace(0, sample_time/60, sample_time*data_frequency),
+    "Theta_corr": EQUAT[0][0],
+    "Gamma_corr": EQUAT[0][1],
+    "Ve_corr":    EQUAT[1][0],
+    "Vn_corr":    EQUAT[1][1],
+    "phi_corr":   EQUAT[2][0],
+    "lamda_corr": EQUAT[2][1],
+})
 #%%
 # uncomment for interactive plots
 #%matplotlib widget
-size = (165/25.4, 80/25.4) # plot size 140, 170 mm
-df.plot(
-    x="Time", y=["Theta_corr", "Gamma_corr"],
-    grid=True,
-    figsize=size,
-    colormap="Accent",
-    title="Углы ориентации",
-    xlabel="Время, мин",
-    ylabel="Угловые минуты",
-    sharey=True,
-    subplots=True,
-    layout=(1,2),
-    #xlim=(gnss_ON/60+4*gnss_TIME/60,90),
-    #ylim=(-70, 70)
-)
-plt.savefig("images/1.jpg")
-s = ''
-s+= "SKO Theta: %3.3f\n" % np.std(df.loc[:,["Theta_corr"]].to_numpy()[gnss_ON*data_frequency+4*gnss_TIME*data_frequency:])
-s+= "SKO Gamma: %3.3f\n" % np.std(df.loc[:,["Gamma_corr"]].to_numpy()[gnss_ON*data_frequency+4*gnss_TIME*data_frequency:])
-print(s)
+#plt_name="гнсс полн обрез "
+plt.style.use('seaborn-white')
+size = (204/25.4, 134.5/25.4) # plot size 140, 170 mm
+dpi=1000
+for df, plt_name in zip([df], ["случ сост "]):
+    df.plot(
+        x="Time", y=["Theta_corr", "Gamma_corr"],
+        grid=True,
+        figsize=size,
+        title=False,
+        #title="Углы ориентации",
+        xlabel="Время, мин",
+        ylabel="Угловые минуты",
+        sharex=True,
+        subplots=True,
+        layout=(2,1),
+        label=['$\\theta$', '$\gamma$'],
+        xlim=(gnss_ON/60+4*gnss_TIME/60,90),
+        ylim=(-200, 200)
+    )
+    #plt.savefig(f"images/{plt_name+'1'}.jpg",dpi=dpi)
+    s = ''
+    s+= "SKO Theta: %3.3f\n" % np.std(df.loc[:,["Theta_corr"]].to_numpy()[gnss_ON*data_frequency+4*gnss_TIME*data_frequency:])
+    s+= "SKO Gamma: %3.3f\n" % np.std(df.loc[:,["Gamma_corr"]].to_numpy()[gnss_ON*data_frequency+4*gnss_TIME*data_frequency:])
+    print(s)
 
-df.plot(
-    x="Time", y=["Ve_corr","Vn_corr"],
-    grid=True,
-    figsize=size,
-    colormap="Accent",
-    title="Cкорости",
-    xlabel="Время, мин",
-    ylabel="М/с",
-    sharey=True,
-    subplots=True,
-    layout=(1,2),
-    #xlim=(gnss_ON/60+4*gnss_TIME/60,90),
-    #ylim=(-3,3),
-)
-plt.savefig("images/2.jpg")
-df.plot(
-    x="Time", y=["phi_corr", "lamda_corr"],
-    grid=True,
-    figsize=size,
-    colormap="Accent",
-    title="Координаты",
-    xlabel="Время, мин",
-    ylabel="М",
-    sharey=True,
-    subplots=True,
-    layout=(1,2),
-    #xlim=(gnss_ON/60+4*gnss_TIME/60,90),
-    #ylim=(-9,9),
-)
-plt.savefig("images/3.jpg")
+    df.plot(
+        x="Time", y=["Ve_corr","Vn_corr"],
+        grid=True,
+        figsize=size,
+        title=False,
+        #title="Cкорости",
+        xlabel="Время, мин",
+        ylabel="М/с",
+        sharex=True,
+        subplots=True,
+        layout=(2,1),
+        label=['$V_e$', '$V_n$'],
+        xlim=(gnss_ON/60+4*gnss_TIME/60,90),
+        #ylim=(-5,5),
+    )
+    #plt.savefig(f"images/{plt_name+'2'}.jpg",dpi=dpi)
+    df.plot(
+        x="Time", y=["phi_corr", "lamda_corr"],
+        grid=True,
+        figsize=size,
+        title=False,
+        #title="Координаты",
+        xlabel="Время, мин",
+        ylabel="М",
+        sharex=True,
+        subplots=True,
+        layout=(2,1),
+        label=['$\\varphi$', '$\lambda$'],
+        xlim=(gnss_ON/60+4*gnss_TIME/60,90),
+        ylim=(-50, 50),
+    )
+    #plt.savefig(f"images/{plt_name+'3'}.jpg",dpi=dpi)
 
 #%%
 s = ''
@@ -326,9 +343,9 @@ for i in range(3):
     s+= f"K{i+1}=%.3f\n" % t.nav().get_k(i)
 print(s)
 #%%
-step = 10
+step = 1
 start = 10
-stop = 360
+stop = 100
 GNSS_T = [i for i in range(start,stop+step, step)]
 s='                SKO\n'
 s+='       | Theta   | Gamma   | \n'

@@ -30,11 +30,33 @@ def read_logs(path='logs'):
     )
     return dataframes_list
 
-dfs = read_logs('../binary_output/invariant_cube/aks1')
+dfs = read_logs('../binary_output/invariant_cube_1/aks1')
 acc = []
+
+est_vec = pd.read_csv("../csv_data/calib.csv").to_numpy().squeeze()
+
+t1= linalg.inv(matrix([
+    [1+est_vec[3], 0, 0],
+    [est_vec[6], 1+est_vec[4],0],
+    [est_vec[7], est_vec[8], 1+est_vec[5]]
+]))
+
+dr = array([
+    est_vec[0],est_vec[1],est_vec[2]
+])
+#%%
 for df in dfs:
+
+    a = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
+    result = []
+    for vec in a:
+        result.append(
+            t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
+        )
+    result = array(result)
+    result = squeeze(result)
     acc.append(
-        mean((df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()),axis=0)
+        mean(result,axis=0)
     )
 #%%
 g = 9.80665
@@ -193,20 +215,22 @@ for i in range(3):
     H_Z_sum += H[i].transpose() @ (Z[i]-Z_hat)
     X = X+H_sum @ H_Z_sum
 estimation_fin = pd.DataFrame({
-    "alpha_x" : X[0,0], "alpha_y": X[1,0], "alpha_z":X[2,0],
+    'alpha_x' : X[0,0], "alpha_y": X[1,0], "alpha_z":X[2,0],
     "alpha_xx":X[3,0], "alpha_yy":X[4,0], "alpha_zz":X[5,0],
     "alpha_yz":X[6,0], "alpha_zx":X[7,0], "alpha_zy":X[8,0],
     "mu_x":X[9,0], "mu_y":X[10,0], "mu_z":X[11,0],
     "hi_x":X[12,0], "hi_y":array([X[13,0]] * 1, dtype="float"),
 })
+#estimation_fin.to_csv("../csv_data/calib.csv",index=False)
+estimation_fin.to_excel("../images/calib_t.xlsx",index=False)
 estimation_fin
 #%% compensation test
 
-dfn = pd.read_csv('../csv_data/Sensors_and_orientation.csv', delimiter=';')
+dfn = pd.read_csv('../csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=12)
 
 t1= linalg.inv(matrix([
     [1+X[3,0], 0, 0],
-    [1+X[6,0], 1+X[4,0],0],
+    [X[6,0], 1+X[4,0],0],
     [X[7,0], X[8,0], 1+X[5,0]]
 ]))
 

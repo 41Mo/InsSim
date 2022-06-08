@@ -2,12 +2,16 @@ from . import plots
 import math
 from numpy import array
 from math import degrees as deg
+import numpy as np
 
 def rad2min(d):
     return deg(d)*60
 
 def rad2meters(d):
     return deg(d)*111111
+
+def rad2me(d):
+    return np.rad2deg(d)*111111
 
 def plot_model(self, DATA, title="", save=False, err=False):
     plots(DATA, self.time, self.points, title=title, save=save, err=err)

@@ -23,8 +23,8 @@ def plot_err_formula(daox, daoy, dwox, dwoy, G, R, time, points, psi, s_teta):
     Phiox = array(Phiox)
     teta = rad2deg(-(Phiox*cos(psi) - Phioy*sin(psi)))*60
     gamma = rad2deg(-(Phioy*cos(psi) + Phiox * sin(psi))*1/cos(s_teta))*60
-    Dphi = rad2deg(array(Dphi))*60
-    Dlamda = rad2deg(array(Dlamda))*60
+    Dphi = rad2deg(array(Dphi))*111111
+    Dlamda = rad2deg(array(Dlamda))*111111
 
     #fig,axs = plt.subplots(2,1,sharex=True,constrained_layout=True)
     #fig.set_size_inches(size)

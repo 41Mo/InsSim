@@ -6,15 +6,12 @@ from modules.libnav.interface.interface import NavIface
 import pandas as pd
 import numpy as np
 from numpy.random import normal as rndnorm
-from numpy import array, matrix, linalg, newaxis, squeeze
 #%matplotlib widget
 import matplotlib.pyplot as plt
 from src.analysis import rad2me as rad2meters
 
-# df = pd.read_csv('csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=12)
-#df = pd.read_csv('binary_output/logs3/bins-2.csv', delimiter=';',skiprows=12)
-#df = pd.read_csv('/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1.csv', delimiter=';',skiprows=12)
-df = pd.read_csv('/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/t1.csv', delimiter=';',skiprows=12)
+df = pd.read_csv('/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/t2.csv', delimiter=';',skiprows=12)
+
 
 #%%
 #df.plot( y=["Acc_X"], grid=True, linewidth=2)
@@ -25,28 +22,16 @@ gyr = df.loc[:, ["Gyr_X", "Gyr_Y", "Gyr_Z"]].to_numpy()
 lat = math.radians(55.7522200)
 lon = math.radians(37.6155600)
 freq = 100
-alignemnt_points = 60*freq
-gnss_std = math.radians(1/111111)/math.sqrt(1/freq)
-gnss_T = 20
+alignemnt_points = 120*freq
+gnss_std = math.radians(3/111111)/math.sqrt(1/freq)
+gnss_T = 15
 gnss_OFF = 10*60
 gnss_ON = (gnss_OFF+ 5*60)
 gnss_OFF *= freq
 gnss_ON *= freq
-test_mid_off =  True
-
-
-try:
-    yaw = np.arctan2(df["Mag_X"],df["Mag_Y"])
-except KeyError:
-    try:
-        yaw = df["Yaw"].to_numpy()
-    except KeyError:
-        yaw=0
-try:
-    mag_yaw = np.mean(yaw[:alignemnt_points])
-except TypeError:
-    mag_yaw = 0
-
+test_mid_off = True
+yaw = np.arctan2(df["Mag_X"],df["Mag_Y"])
+mag_yaw = np.mean(yaw[:alignemnt_points])
 #%%
 if mag_yaw < 0:
     mag_heading = mag_yaw + 2*math.pi
@@ -54,31 +39,9 @@ else:
     mag_heading = mag_yaw
 points = len(acc)
 
-
-est_vec = pd.read_csv("csv_data/calib.csv").to_numpy().squeeze()
-
-t1= linalg.inv(matrix([
-    [1+est_vec[3], 0, 0],
-    [est_vec[6], 1+est_vec[4],0],
-    [est_vec[7], est_vec[8], 1+est_vec[5]]
-]))
-
-dr = array([
-    est_vec[0],est_vec[1],est_vec[2]
-])
-
-result = []
-for vec in acc:
-    result.append(
-        t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
-    )
-result = array(result)
-acc = squeeze(result)
-
 time_min = len(acc[:,0])/freq/60
 align,acc = np.split(acc, [alignemnt_points])
 gyr = np.split(gyr, [alignemnt_points])[1]
-
 
 
 gnss = rndnorm((lat, lon), gnss_std, size=(len(acc[:,0]), 2)),
@@ -97,24 +60,46 @@ s+=f"Kurs: {np.rad2deg(ini_pry[2]+2*np.pi):5.4f}\n"
 s+=f"Kren: {np.rad2deg(ini_pry[1]):5.4f}\n"
 s+=f"Tangazh: {np.rad2deg(ini_pry[0]):5.4f}\n"
 print(s)
-ni.nav().gnss_T(gnss_T)
-ni.nav().corr_mode(True)
 #%%
-pry = []; vel = []; pos = []
-i=0
-for a, g, sns in zip(acc, gyr, gnss):
-    if i == gnss_OFF and test_mid_off:
-        ni.nav().corr_mode(False)
-    elif i == gnss_ON and test_mid_off:
-        ni.nav().corr_mode(True)
 
-    ni.nav().iter_gnss(
-        a, g, sns
+step = 1
+start = 3
+stop = 20
+GNSS_T = [i for i in range(start,stop+step, step)]
+for T in GNSS_T:
+    test_alg = NavIface(lat, lon, freq)
+    test_alg.nav().alignment_acc(
+        np.mean(align[:,0]),
+        np.mean(align[:,1]),
+        np.mean(align[:,2]),
+        mag_heading
     )
-    pry.append(ni.nav().get_pry())
-    vel.append(ni.nav().get_vel())
-    pos.append(ni.nav().get_pos())
-    i+=1
+    ini_pry = test_alg.nav().align_prh()
+    test_alg.nav().gnss_T(T)
+    test_alg.nav().corr_mode(True)
+    pry = []; vel = []; pos = []
+    i=0
+    for a, g, sns in zip(acc, gyr, gnss):
+        if i == gnss_OFF and test_mid_off:
+            test_alg.nav().corr_mode(False)
+        elif i == gnss_ON and test_mid_off:
+            test_alg.nav().corr_mode(True)
+
+        test_alg.nav().iter_gnss(
+            a, g, sns
+        )
+        pry.append(test_alg.nav().get_pry())
+        vel.append(test_alg.nav().get_vel())
+        pos.append(test_alg.nav().get_pos())
+        i+=1
+    pry = np.array(pry)
+    pry = np.rad2deg(pry)*60
+    s=''
+    s+=f"T={T}; Pitch SKO: {np.std((pry[:,0][gnss_ON+4*T*freq:]))}; Roll SKO: {np.std((pry[:,1])[gnss_ON+4*T*freq:])}"
+    print(s)
+
+
+
 #%%
 def pry2prh(pry):
     if pry[2] < 0:
@@ -124,9 +109,9 @@ def pry2prh(pry):
 #%%
 pos = [np.array(p) - np.array([lat,lon]) for p in pos]
 pos = np.array([rad2meters(p).squeeze() for p in pos])
-#pry = np.array(pry) - np.array(ini_pry)
-#pry = [pry2prh(e) for e in pry]
-pry = np.rad2deg(pry)
+pry = np.array(pry) - np.array(ini_pry)
+pry = [pry2prh(e) for e in pry]
+pry = np.rad2deg(pry)*60
 vel = np.array(vel)
 #pos = np.rad2deg(pos)
 #%%
@@ -143,8 +128,6 @@ df2 = pd.DataFrame(
     }
 )
 #%%
-#30*freq*60
-#df2 = df2.iloc[:3*60*freq]
 df2 = df2.iloc[gnss_ON+4*gnss_T*freq:]
 #df2 = df2.iloc[:gnss_OFF]
 
