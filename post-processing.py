@@ -6,15 +6,16 @@ from modules.libnav.interface.interface import NavIface
 import pandas as pd
 import numpy as np
 from numpy.random import normal as rndnorm
-from numpy import array, matrix, linalg, newaxis, squeeze
+from numpy import array, matrix, linalg, ndarray, newaxis, squeeze
 #%matplotlib widget
 import matplotlib.pyplot as plt
 from src.analysis import rad2me as rad2meters
+from src.analysis import c_enu_body
 
-# df = pd.read_csv('csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=12)
-#df = pd.read_csv('binary_output/logs3/bins-2.csv', delimiter=';',skiprows=12)
-#df = pd.read_csv('/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1.csv', delimiter=';',skiprows=12)
-df = pd.read_csv('/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/t1.csv', delimiter=';',skiprows=12)
+#df = pd.read_csv('csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=12)
+df = pd.read_csv('binary_output/logs3/bins-2.csv', delimiter=';',skiprows=12)
+#df = pd.read_csv('binary_output/logs3/1.csv', delimiter=';',skiprows=12)
+#df = pd.read_csv('binary_output/logs3/t1.csv', delimiter=';',skiprows=12)
 
 #%%
 #df.plot( y=["Acc_X"], grid=True, linewidth=2)
@@ -25,14 +26,14 @@ gyr = df.loc[:, ["Gyr_X", "Gyr_Y", "Gyr_Z"]].to_numpy()
 lat = math.radians(55.7522200)
 lon = math.radians(37.6155600)
 freq = 100
-alignemnt_points = 60*freq
-gnss_std = math.radians(1/111111)/math.sqrt(1/freq)
-gnss_T = 20
+alignemnt_points = 180*freq
+gnss_std = math.radians(3/111111)/math.sqrt(1/freq)
+gnss_T = 29
 gnss_OFF = 10*60
 gnss_ON = (gnss_OFF+ 5*60)
 gnss_OFF *= freq
 gnss_ON *= freq
-test_mid_off =  True
+test_mid_off = False
 
 
 try:
@@ -55,26 +56,27 @@ else:
 points = len(acc)
 
 
-est_vec = pd.read_csv("csv_data/calib.csv").to_numpy().squeeze()
+#%%
+#est_vec = pd.read_csv("csv_data/calib.csv").to_numpy().squeeze()
+#
+#t1= linalg.inv(matrix([
+#    [1+est_vec[3], 0, 0],
+#    [est_vec[6], 1+est_vec[4],0],
+#    [est_vec[7], est_vec[8], 1+est_vec[5]]
+#]))
+#
+#dr = array([
+#    est_vec[0],est_vec[1],est_vec[2]
+#])
 
-t1= linalg.inv(matrix([
-    [1+est_vec[3], 0, 0],
-    [est_vec[6], 1+est_vec[4],0],
-    [est_vec[7], est_vec[8], 1+est_vec[5]]
-]))
-
-dr = array([
-    est_vec[0],est_vec[1],est_vec[2]
-])
-
-result = []
-for vec in acc:
-    result.append(
-        t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
-    )
-result = array(result)
-acc = squeeze(result)
-
+#result = []
+#for vec in acc:
+#    result.append(
+#        t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
+#    )
+#result = array(result)
+#acc = squeeze(result)
+#%%
 time_min = len(acc[:,0])/freq/60
 align,acc = np.split(acc, [alignemnt_points])
 gyr = np.split(gyr, [alignemnt_points])[1]
@@ -83,6 +85,7 @@ gyr = np.split(gyr, [alignemnt_points])[1]
 
 gnss = rndnorm((lat, lon), gnss_std, size=(len(acc[:,0]), 2)),
 gnss = np.squeeze(gnss)
+#gnss = np.array([[lat, lon]]*np.shape(acc)[0])
 #%%
 ni = NavIface(lat, lon, freq)
 ni.nav().alignment_acc(
@@ -97,6 +100,30 @@ s+=f"Kurs: {np.rad2deg(ini_pry[2]+2*np.pi):5.4f}\n"
 s+=f"Kren: {np.rad2deg(ini_pry[1]):5.4f}\n"
 s+=f"Tangazh: {np.rad2deg(ini_pry[0]):5.4f}\n"
 print(s)
+#%%
+acc = acc - np.mean(acc, axis=0)
+gyr = gyr - np.mean(gyr, axis=0)
+G=ni.G()
+U=ni.U()
+# задание начальных условий
+
+# расчет матрицы перехода
+C = c_enu_body(ini_pry[2], ini_pry[1], ini_pry[0])
+
+# перепроецируем G из body->enu
+a_enu = np.array([
+    [0, 0, G]
+])
+a_body = (C@a_enu.transpose()).transpose()
+
+# перепроецируем W земли из body->enu
+w_enu = np.array([
+    [0, U*math.cos(lat), U*math.sin(lat)]
+])
+w_body = (C@w_enu.transpose()).transpose()
+acc = acc + a_body
+gyr = gyr + w_enu
+#%%
 ni.nav().gnss_T(gnss_T)
 ni.nav().corr_mode(True)
 #%%
@@ -144,8 +171,8 @@ df2 = pd.DataFrame(
 )
 #%%
 #30*freq*60
-#df2 = df2.iloc[:3*60*freq]
-df2 = df2.iloc[gnss_ON+4*gnss_T*freq:]
+df2 = df2.iloc[10*60*freq:15*60*freq]
+#df2 = df2.iloc[gnss_ON+4*gnss_T*freq:]
 #df2 = df2.iloc[:gnss_OFF]
 
 #%%
