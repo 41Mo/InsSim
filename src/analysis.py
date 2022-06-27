@@ -5,7 +5,7 @@ from math import degrees as deg
 import numpy as np
 
 def rad2min(d):
-    return deg(d)*60
+    return np.rad2deg(d)*60
 
 def rad2meters(d):
     return deg(d)*111111

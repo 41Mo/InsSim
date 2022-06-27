@@ -10,12 +10,12 @@ from numpy import newaxis, array, squeeze, linalg, matrix
 # %%
 files = [
     #"../binary_output/logs3/2.csv",
-    # "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1-1.csv",
-    # "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1-2.csv",
-    # "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1-3.csv",
-    # "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/1-4.csv",
-    "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/t1.csv",
-    "/home/alex/code_and_everything/nav_alg_workspace/nav_alg/binary_output/logs3/t2.csv",
+     #"/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/1-1.csv",
+     "/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/1-2.csv",
+     "/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/1-3.csv",
+     "/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/1-4.csv",
+    #"/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/t1.csv",
+    #"/home/alex/code_and_everything/nav_alg_workspace/analysis/binary_output/logs3/t2.csv",
 ]
 imu_frq = 100
 gyr = [
@@ -25,13 +25,14 @@ acc = [
     "Acc_X", "Acc_Y", "Acc_Z"
 ]
 
-est_vec = pd.read_csv("../csv_data/calib.csv").to_numpy().squeeze()
+est_vec = pd.read_csv("../tmp/r1.csv").to_numpy().squeeze()
 
-t1= linalg.inv(matrix([
+t1= matrix([
     [1+est_vec[3], 0, 0],
     [est_vec[6], 1+est_vec[4],0],
     [est_vec[7], est_vec[8], 1+est_vec[5]]
-]))
+])
+t2 = linalg.inv(t1)
 
 dr = array([
     est_vec[0],est_vec[1],est_vec[2]
@@ -100,7 +101,7 @@ for i in range(2):
                 ylabel=pl[3],
                 xlabel=pl[2],
                 ax=fa[1],
-                linestyle= 'dotted',#(0, (1, 10)),
+                linestyle=(0, (3, 5)),
                 figsize=size,
                 label=n1,
                 )
@@ -126,7 +127,7 @@ plot_names = [
     "caly.jpg",
     "calz.jpg"
 ]
-path="/home/alex/code_and_everything/nav_alg_workspace/nav_alg/images/"
+path="/home/alex/code_and_everything/nav_alg_workspace/analysis/images/"
 dpi=500
 for pl, n in zip(figax, plot_names):
     pl[0].savefig(path+n, dpi=dpi)

@@ -43,9 +43,9 @@ acc_offset_y = 1* 1e-3 * 9.8 # [m/s/s]
 gyr_drift_x =  math.radians(10)/3600 # [rad/s]
 gyr_drift_y =  math.radians(10)/3600
 # normal distribution param
-sigma_a = 0.01 #[m/s/s]
-sigma_g = math.radians(0.07) # [rad/s]
-gnss_std = m.radians((3/111111)/m.sqrt(1/data_frequency))
+sigma_a = 0.019 #[m/s/s]
+sigma_g = math.radians(0.3) # [rad/s]
+gnss_std = m.radians((1/111111)/m.sqrt(1/data_frequency))
 Tg = 0.2
 Ta = 0.3
 gnss_TIME = 43
@@ -363,9 +363,9 @@ for i in range(3):
     s+= f"K{i+1}=%.3f\n" % t.nav().get_k(i)
 print(s)
 #%%
-step = 10
+step = 1
 start = 10
-stop = 180
+stop = 30
 GNSS_T = [i for i in range(start,stop+step, step)]
 s='                SKO\n'
 s+='       | Theta   | Gamma   | \n'

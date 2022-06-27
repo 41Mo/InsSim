@@ -27,7 +27,9 @@ def temp_corr(ini_temp, temp, X, acc):
     return acc - (X[0]+X[1]*(temp-ini_temp)+X[2]*np.power(temp-ini_temp,2))
 
 #%%
-df = pd.read_csv('../csv_data/Temp.csv', delimiter=';')
+df = pd.read_csv('../binary_output/temperature/00g.csv', delimiter=';', comment='/')
+df = df.loc[df.Temperature>5]
+buf = df.loc[df.Temperature<30]
 acc = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
 gyr = df.loc[:, ["Gyr_X", "Gyr_Y", "Gyr_Z"]].to_numpy()
 temp = df["Temperature"].to_numpy()

@@ -1,60 +1,70 @@
-
+#!/bin/python3
 #%%
 import sys
 sys.path.insert(0, '../src/')
 import pandas as pd
-from filter import filter
-from numpy import *
-import matplotlib.pyplot as plt
+from numpy import linalg, array, matrix, newaxis, squeeze, eye, zeros, mean, block, shape
+import argparse
+#%%
+parser = argparse.ArgumentParser(description='Estiate acc errors.')
+parser.add_argument('sd', metavar='srcdir', type=str,
+                    help='Dir with acc data')
+parser.add_argument('--out', dest="resfile", help="Store calib result in file. Can be .xlsx or .csv", default="")
+parser.add_argument('--est_file', dest="ef", help="Use already estimated data file to check reult", default="")
+parser.add_argument('--iter_n', dest="i_n", help="Num of approximation iter.", default=3, type=int)
+args = parser.parse_args()
+#%%
 def read_logs(path='logs'):
     path+='/'
     dataframes_list = []
-    rows_to_skip=5
     dataframes_list.append(
-        pd.read_csv(path+'00g.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'00g.csv', delimiter=';', comment='/')
     )
     dataframes_list.append(
-        pd.read_csv(path+'00-g.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'00-g.csv', delimiter=';', comment='/')
     )
     dataframes_list.append(
-        pd.read_csv(path+'0g0.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'0g0.csv', delimiter=';', comment='/')
     )
     dataframes_list.append(
-        pd.read_csv(path+'0-g0.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'0-g0.csv', delimiter=';', comment='/')
     )
     dataframes_list.append(
-        pd.read_csv(path+'g00.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'g00.csv', delimiter=';', comment='/')
     )
     dataframes_list.append(
-        pd.read_csv(path+'-g00.csv', delimiter=';', skiprows=rows_to_skip)
+        pd.read_csv(path+'-g00.csv', delimiter=';', comment='/')
     )
     return dataframes_list
 
-dfs = read_logs('../binary_output/invariant_cube_1/aks1')
+dfs = read_logs(args.sd)
 acc = []
+if args.ef:
+    est_vec = pd.read_csv(args.ef).to_numpy().squeeze()
 
-est_vec = pd.read_csv("../csv_data/calib.csv").to_numpy().squeeze()
+    t1= linalg.inv(matrix([
+        [1+est_vec[3], 0, 0],
+        [est_vec[6], 1+est_vec[4],0],
+        [est_vec[7], est_vec[8], 1+est_vec[5]]
+    ]))
 
-t1= linalg.inv(matrix([
-    [1+est_vec[3], 0, 0],
-    [est_vec[6], 1+est_vec[4],0],
-    [est_vec[7], est_vec[8], 1+est_vec[5]]
-]))
-
-dr = array([
-    est_vec[0],est_vec[1],est_vec[2]
-])
+    dr = array([
+        est_vec[0],est_vec[1],est_vec[2]
+    ])
 #%%
 for df in dfs:
 
     a = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
-    result = []
-    for vec in a:
-        result.append(
-            t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
-        )
-    result = array(result)
-    result = squeeze(result)
+    if args.ef:
+        result = []
+        for vec in a:
+            result.append(
+                t1@(vec[:,newaxis]-dr[:,newaxis]*9.80665)
+            )
+        result = array(result)
+        result = squeeze(result)
+    else:
+        result = a
     acc.append(
         mean(result,axis=0)
     )
@@ -187,10 +197,9 @@ estimation_pre = pd.DataFrame({
     "mu_x":X[9,0], "mu_y":X[10,0], "mu_z":X[11,0],
     "hi_x":X[12,0], "hi_y":array([X[13,0]] * 1, dtype="float"),
 })
-estimation_pre
 #%%
 H_Z_sum = zeros(shape=shape(H_Z_sum))
-for i in range(3):
+for i in range(args.i_n):
     ai_hat = matrix([
         [X[0,0]],
         [X[1,0]],
@@ -221,92 +230,8 @@ estimation_fin = pd.DataFrame({
     "mu_x":X[9,0], "mu_y":X[10,0], "mu_z":X[11,0],
     "hi_x":X[12,0], "hi_y":array([X[13,0]] * 1, dtype="float"),
 })
-#estimation_fin.to_csv("../csv_data/calib.csv",index=False)
-estimation_fin.to_excel("../images/calib_t.xlsx",index=False)
-estimation_fin
-#%% compensation test
-
-dfn = pd.read_csv('../csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=12)
-
-t1= linalg.inv(matrix([
-    [1+X[3,0], 0, 0],
-    [X[6,0], 1+X[4,0],0],
-    [X[7,0], X[8,0], 1+X[5,0]]
-]))
-
-dr = array([
-    X[0,0],X[1,0],X[2,0]
-])
-
-a = dfn.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
-#%%
-points = len(a)
-frq = 100
-time = points/frq
-time_axis = linspace(0, time, points)
-
-for i in range(2):
-    print("Было ax, ay, az")
-    print((a[0])[:,newaxis])
-    print("Стало ax, ay, az")
-    print( t1@((a[0])[:,newaxis]-dr[:,newaxis]*g) )
-
-result = []
-for vec in a:
-    result.append(
-        t1@(vec[:,newaxis]-dr[:,newaxis]*g)
-    )
-result = array(result)
-result = squeeze(result)
-#%%
-T=10
-slice_from = 15000
-res_df = pd.DataFrame({
-    "Time":time_axis[slice_from:],
-    "AccX_before_cal":(a[:,0])[slice_from:],
-    "AccY_before_cal":(a[:,1])[slice_from:],
-    "AccZ_before_cal":(a[:,2])[slice_from:],
-    "AccX_after_cal": (result[:,0])[slice_from:],
-    "AccY_after_cal": (result[:,1])[slice_from:],
-    "AccZ_after_cal": (result[:,2])[slice_from:],
-    "AccX_before_cal_f": filter(a[:,0], T=T)[slice_from:],
-    "AccY_before_cal_f": filter(a[:,1], T=T)[slice_from:],
-    "AccZ_before_cal_f": filter(a[:,2], T=T)[slice_from:],
-    "AccX_after_cal_f": filter(result[:,0], T=T)[slice_from:],
-    "AccY_after_cal_f": filter(result[:,1], T=T)[slice_from:],
-    "AccZ_after_cal_f": filter(result[:,2], T=T)[slice_from:],
-})
-#%%
-size = (140*2/25.4, 170*2/25.4)
-plt.style.use('fivethirtyeight')
-dump = res_df.plot(
-    x="Time",
-    subplots=True,
-    layout=[3,2],
-    figsize=size,
-    y=[
-        "AccX_before_cal", "AccX_after_cal",
-        "AccY_before_cal", "AccY_after_cal",
-        "AccZ_before_cal", "AccZ_after_cal",
-    ]
-)
-#%%
-size = (400/25.4, 170/25.4)
-dump = res_df.plot(
-    x="Time",
-    figsize=size,
-    y=[
-        "AccX_before_cal_f", "AccX_after_cal_f",
-        "AccY_before_cal_f", "AccY_after_cal_f",
-    ]
-)
-
-dump = res_df.plot(
-    x="Time",
-    figsize=size,
-    y=[
-        "AccZ_before_cal_f", "AccZ_after_cal_f",
-    ]
-)
-
-# %%
+if args.resfile:
+    estimation_fin.to_csv(args.resfile,index=False)
+else:
+    print(estimation_fin)
+#estimation_fin.to_excel("../images/calib_t.xlsx",index=False)
