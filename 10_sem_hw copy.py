@@ -45,7 +45,7 @@ gyr_drift_y =  math.radians(10)/3600
 # normal distribution param
 sigma_a = 0.019 #[m/s/s]
 sigma_g = math.radians(0.3) # [rad/s]
-gnss_std = m.radians((1/111111)/m.sqrt(1/data_frequency))
+gnss_std = m.radians((3/111111)/m.sqrt(1/data_frequency))
 Tg = 0.2
 Ta = 0.3
 gnss_TIME = 43

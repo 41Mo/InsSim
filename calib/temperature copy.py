@@ -98,7 +98,7 @@ files = [
 for f in files:
     buf = pd.read_csv(f, delimiter=';', comment="/")
     #del buf['PacketCounter']
-    buf = buf.loc[buf.Temperature>5]
+    # buf = buf.loc[buf.Temperature>]
     buf = buf.loc[buf.Temperature<20]
 
     a_v = buf.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()

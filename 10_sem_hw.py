@@ -23,7 +23,7 @@ lat = math.radians(55.7522200) # phi
 lon = math.radians(37.6155600) # lambda
 ini_pos = [lat, lon]
 # file with real sensors data
-sample_time = 5*60 # seconds
+sample_time = 180*60 # seconds
 data_frequency = 100 # Hz
 save_plots = False # plots would be saved to images folder
 plots_size = (297,210) # plots height,width in mm
@@ -40,8 +40,8 @@ ini_pry = [pitch, roll, heading]
 # sensor errors
 acc_offset_x = 1* 1e-3 * 9.8  # [m/s/s]
 acc_offset_y = 1* 1e-3 * 9.8 # [m/s/s]
-gyr_drift_x =  math.radians(10)/3600 # [rad/s]
-gyr_drift_y =  math.radians(10)/3600
+gyr_drift_x =  0.2#math.radians(10)/3600 # [rad/s]
+gyr_drift_y =  0.2#math.radians(10)/3600
 # normal distribution param
 sigma_a = 0.01 #[m/s/s]
 sigma_g = math.radians(0.07) # [rad/s]
@@ -49,10 +49,10 @@ gnss_std = m.radians((3/111111)/m.sqrt(1/data_frequency))
 Tg = 0.2
 Ta = 0.3
 gnss_TIME = 43
-gnss_OFF = 10*60
+gnss_OFF = 60*60
 gnss_ON = gnss_OFF+ 5*60
-rad_k = 10
-ir_k = 10
+rad_k = 1
+ir_k = 1
 
 """
     Config section end
@@ -129,11 +129,11 @@ def alg_loop(gnss_t:int, corr:bool=True, mid_off:bool=True, integ_rad_corr:bool 
                 acc, gyr, gnss[i]
                 )
 
-        if (i == gnss_OFF*data_frequency and corr and mid_off):
+        if (i == gnss_OFF*data_frequency and mid_off):
             na.nav().corr_mode(False)
             na.nav().toggle_integ_rad_c(integ_rad_corr)
             na.nav().toggle_rad_c(rad_corr)
-        if (i == gnss_ON*data_frequency and corr and mid_off):
+        if (i == gnss_ON*data_frequency and mid_off):
             na.nav().corr_mode(True)
             na.nav().toggle_integ_rad_c(False)
             na.nav().toggle_rad_c(False)
@@ -176,9 +176,9 @@ D = data_gen(True,
     False
     )
 #%%
-ALG_DATA_CORR = alg_loop(gnss_t=gnss_TIME, corr=True, mid_off=True, integ_rad_corr=False,rad_corr=False)
+ALG_DATA_CORR = alg_loop(gnss_t=gnss_TIME, corr=False, mid_off=True, integ_rad_corr=True,rad_corr=False)
 #ALG_DATA_NOCORR = alg_loop(gnss_t=gnss_TIME, use_form_filter=False, corr=False)
-ALG_DATA_CORR_2 = alg_loop(gnss_t=gnss_TIME, corr=True, mid_off=True, integ_rad_corr=True, rad_corr=False)
+ALG_DATA_CORR_2 = alg_loop(gnss_t=gnss_TIME, corr=False, mid_off=True, integ_rad_corr=False, rad_corr=True)
 acc_offset = np.array([
     [acc_offset_x],
     [acc_offset_y],
@@ -238,7 +238,7 @@ df1 = pd.DataFrame({
 })
 #%%
 # uncomment for interactive plots
-#%matplotlib widget
+# %matplotlib widget
 
 plt.style.use('seaborn-white')
 size = (204/25.4, 144.95/25.4)
@@ -269,9 +269,9 @@ y_labels=[
 for d, ax in zip([df, df2],axes):
     show_legend = True 
     for tdf in [
-        d.iloc[:gnss_OFF*data_frequency],
-        d.iloc[gnss_OFF*data_frequency:gnss_ON*data_frequency],
-        d.iloc[gnss_ON*data_frequency+60*data_frequency:]
+        # d.iloc[:gnss_OFF*data_frequency],
+        d.iloc[gnss_OFF*data_frequency+10*data_frequency:gnss_ON*data_frequency],
+        # d.iloc[gnss_ON*data_frequency+60*data_frequency:]
     ]:
         plt_num = 0
         for y,y_label,a,label in zip(y_cols,y_labels,ax,labels):
@@ -289,10 +289,10 @@ for d, ax in zip([df, df2],axes):
             plt_num+=1
         show_legend=False
 #%%
-# path = "images/"
-# for ax_list, name in zip(axes, ["КОРР БИНС"," КОРР БИСО"]):
-#     for ax,i in zip(ax_list,range(len(ax_list))):
-#         ax[0].savefig(f"{path}{name} {i}.jpg", dpi=dpi)
+path = "images/"
+for ax_list, name in zip(axes, ["КОРР БИCО"]):
+    for ax,i in zip(ax_list,range(len(ax_list)+1)):
+        ax[0].savefig(f"{path}{name} {i}.jpg", dpi=dpi)
 #%%
 start =sample_time*data_frequency-3*60*data_frequency
 for dft in [df.iloc[start:],

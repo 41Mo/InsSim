@@ -133,3 +133,5 @@ df = pd.read_csv('csv_data/Sensors_and_orientation.csv', delimiter=';',skiprows=
 df.iloc[:175000].plot( y=["Gyr_X"], grid=True, linewidth=2)
 plt.show()
 plt.plot(D[3])
+#%%
+df.mean(axis='index')
