@@ -40,18 +40,17 @@ class INS_SIM:
         self.dcm_b_e = DCM()
         self.att = att*D2R
         self.dcm_b_e.from_euler(self.att[0], self.att[1], self.att[2])
+        self.dcm_b_e = self.dcm_b_e.matrix
 
-        self.lat = pos[0]* D2R
-        self.lng = pos[1]* D2R
-        self.alt = pos[2]
+        self.pos = np.array([pos[0]*D2R, pos[1]*D2R, pos[2]])
         self.alg.init_alg(
-            np.array([self.lat, self.lng, self.alt]),
+            self.pos,
             self.att
             )
 
     def __step(self):
         if not self.imu == None:
-            g_enu,sl,cl,U = geo_param(np.array([self.lat, self.lng, self.alt]))[2:6]
+            g_enu,sl,cl,U = geo_param(self.pos)[2:6]
             self.alg.a = (self.imu.get_accel_err(1/self.fs[0]) + (self.dcm_b_e * np.matrix([0,0,g_enu]).T).T).A1
             self.alg.g = (self.imu.get_gyro_err(1/self.fs[0]) + (self.dcm_b_e * np.matrix([0,U*cl,U*sl]).T).T).A1
 
@@ -65,7 +64,7 @@ class INS_SIM:
     def error_eq(self, points):
         abx, aby = self.imu._acc_bias[0:2]
         wbx, wby = self.imu._gyro_bias[0:2]
-        g_enu,sl,cl,U = geo_param(np.array([self.lat, self.lng, self.alt]))[2:6]
+        g_enu,sl,cl,U = geo_param(self.pos)[2:6]
         return plot_err_formula(abx, aby, wbx, wby, g_enu, self.alg.R, points, self.att[2], self.att[1])
     
     def result(self, key):

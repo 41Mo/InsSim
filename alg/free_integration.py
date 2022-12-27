@@ -23,6 +23,7 @@ class FIA(INS_ALGO):
         self.dcm_b_e : np.matrix = self.dcm_b_e.matrix
         self.V = np.array([0,0,0], dtype=np.float64)
         self.w_enu = np.array([0,0,0])
+        self.att = np.array([0,0,0])
 
         if self.use_prec_geoparm:
             self.G,sl,cl,self.U = geo_param(self.pos)[2:6]
@@ -63,8 +64,8 @@ class FIA(INS_ALGO):
     def get_attitude(self):
         mat = self.dcm_b_e
         c0 = np.sqrt(np.power(mat[2,0], 2.0) + np.power(mat[2,2], 2.0));
-        pitch = np.arctan(mat[2,1] / c0);
-        roll = -np.arctan(mat[2,0] / mat[2,2]);
-        yaw = np.arctan2(mat[0,1], mat[1,1]);
-        return np.array([roll, pitch, wrap_2PI(yaw)])
+        self.att[1] = np.arctan(mat[2,1] / c0);
+        self.att[0] = -np.arctan(mat[2,0] / mat[2,2]);
+        self.att[2] = np.arctan2(mat[0,1], mat[1,1]);
+        return self.att.copy()
 
