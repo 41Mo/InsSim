@@ -57,27 +57,22 @@ class IMU:
         self._accel_w = np.array([0.0,0.0,0.0])
         self._gyro_w = np.array([0.0,0.0,0.0])
 
-    def __non_gaussian_noize(self, std, Tc, prev, dt):
-        if Tc == 0:
-            return 0.0
-        W = (1 - dt/Tc) * prev + std * np.sqrt(2*dt/Tc)*np.random.randn()
+        self._prev_nz_v = np.zeros((2,3))
+
+    def get_accel_err(self) -> np.ndarray:
+        self._prev_nz_v[0] = self._acc_t1 * self._prev_nz_v[0] + self._acc_t2*np.random.randn(3)
+        return self._acc_bias+self._prev_nz_v[0]
     
-    def get_accel_err(self, dt) -> np.ndarray:
-        noize = []
-        for std,tau,w in zip(self._acc_std, self._acc_tau, self._accel_w):
-            noize.append(
-                self.__non_gaussian_noize(std,tau,w, dt)
-            )
-        noize = np.array(noize)
-        self._accel_w = noize
-        return self._acc_bias+noize
+    def set_freq(self, freq) -> None:
+        self.dt = 1/freq
+
+        self._acc_t1 = (1 - self.dt/self._acc_tau)
+        self._acc_t2 = self._acc_std * np.sqrt(2*self.dt/self._acc_tau)
+
+        self._gyro_t1 = (1 - self.dt/self._gyro_tau)
+        self._gyro_t2 = self._gyro_std * np.sqrt(2*self.dt/self._gyro_tau)
+
     
-    def get_gyro_err(self, dt):
-        noize = []
-        for std,tau,w in zip(self._gyro_std, self._gyro_tau, self._gyro_w):
-            noize.append(
-                self.__non_gaussian_noize(std,tau,w, dt)
-            )
-        noize = np.array(noize)
-        self._gyro_w = noize
-        return self._gyro_bias+noize
+    def get_gyro_err(self) -> np.ndarray:
+        self._prev_nz_v[1] = self._gyro_t1 * self._prev_nz_v[1] + self._gyro_t2*np.random.randn(3)
+        return self._gyro_bias+self._prev_nz_v[0]
