@@ -66,4 +66,4 @@ for i in range(2):
     axs[i].plot(ins.result("POS")[:,i]*R2D, label=labels[i])
     axs[i].legend()
 
-# plt.show()
+plt.show()
