@@ -8,11 +8,11 @@ class DCM:
     def __init__(self) -> None:
         self.matrix = np.eye(3,3)
     
-    def __mul__(self, rhs):
-        return self.matrix*rhs
+    # def __mul__(self, rhs):
+    #     return self.matrix*rhs
     
-    def __rmul__(self, lhs):
-        return lhs*self.matrix
+    # def __rmul__(self, lhs):
+    #     return lhs*self.matrix
 
     def from_euler(self, roll, pitch, heading):
         sp = np.sin(heading)
@@ -43,11 +43,6 @@ class DCM:
 def skew(x):
     if isinstance(x, np.matrix):
         x = x.A1
-    elif (isinstance(x, np.ndarray)):
-        pass
-    else:
-        raise(ValueError, "Err")
-
     return np.array([[0.0, -x[2], x[1]],
                      [x[2], 0.0, -x[0]],
                      [-x[1], x[0], 0.0]])
