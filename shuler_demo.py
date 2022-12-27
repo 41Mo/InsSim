@@ -2,7 +2,7 @@
 import numpy as np
 from InsSim.ins.ins import INS_SIM
 from InsSim.imu.imu_model import IMU
-from alg.free_integration import FIA
+from alg.shuler import Shuler
 import matplotlib.pyplot as plt
 
 R2D = 180/np.pi
@@ -15,7 +15,8 @@ inital_param = np.array([
     np.array([0,0,0]), # pos
 ])
 
-fia = FIA(
+
+fia = Shuler(
     inital_param[0], # setup initial att
     inital_param[1], # setup initial vel
     inital_param[2], # setup initial pos

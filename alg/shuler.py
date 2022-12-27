@@ -4,9 +4,9 @@ from InsSim.attitude import DCM, skew, wrap_2PI
 from InsSim.geoparams.geoparams import geo_param
 
 
-class FIA(INS_ALGO):
+class Shuler(INS_ALGO):
     '''
-    Free intergration
+    Shuler ins alg
     Body frame convention: y - forward, x- right, z -up
     '''
     R = 6378245.0
