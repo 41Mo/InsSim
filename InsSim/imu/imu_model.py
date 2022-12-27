@@ -66,6 +66,15 @@ class IMU:
     def set_freq(self, freq) -> None:
         self.dt = 1/freq
 
+        sc :np.ndarray = (self._acc_tau == 0)
+        if True in sc:
+            raise ValueError(f"accel tau index:{np.where(sc == True)} should not be zero")
+
+        sc :np.ndarray = (self._gyro_tau == 0)
+        if True in sc:
+            raise ValueError(f"gyro tau index:{np.where(sc == True)} should not be zero")
+
+
         self._acc_t1 = (1 - self.dt/self._acc_tau)
         self._acc_t2 = self._acc_std * np.sqrt(2*self.dt/self._acc_tau)
 
