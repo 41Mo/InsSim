@@ -62,6 +62,8 @@ class INS_SIM:
 
     def run(self, time_sec):
         self.generate_imu_values(time_sec)
+        if self.alg_arr == None:
+            return
         for alg in self.alg_arr:
             alg.a = self.output["ACC"]
             alg.g = self.output["GYR"]
