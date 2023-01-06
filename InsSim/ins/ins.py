@@ -44,6 +44,7 @@ class INS_SIM:
             "VEL":self.vel,
             "POS":self.pos
         }
+        self.imu.set_freq(self.fs)
 
     def result(self, key):
         return np.array(self.output[key])
@@ -51,7 +52,11 @@ class INS_SIM:
     def generate_imu_values(self, time_sec):
         if self.imu == None:
             raise ValueError
-        self.imu.set_freq(self.fs)
+        if self.imu.use_real_data[0]== True:
+            self.output["ACC"] = self.imu.Acc
+            self.output["GYR"] = self.imu.Gyr
+            return
+
         nloops = time_sec*self.fs[0]
         accel_err = np.zeros([nloops, 3])
         gyro_err = np.zeros([nloops, 3])

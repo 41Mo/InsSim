@@ -21,7 +21,6 @@ class IMU:
             accel_b : bias, m/s/s
             accel_std: descrete standard deviation, m/s/s
             accel_tau: correlation T, s
-
         gyroscopes:
             gyro_b: bias, deg/h
             gyro_std: descrete standart deviation, deg/s
@@ -32,51 +31,25 @@ class IMU:
         compass:
             compass_b: offset, deg
             compass_std: standard deviation, deg
+
+        Possible to setup instead of accelerometr and gyroscopes real sensor data.
+        To set it up dict with
+        Acc: (n,3) m/s/s
+        Gyr: (n,3) rad/s
         '''
         if not isinstance(imu_model, dict):
             raise(TypeError)
+        self.use_real_data = [False, False, False]
+        
+        self.parse_acc_gyr_keys(imu_model)
+        self.parse_gps_keys(gps)
+        self.parse_compass_keys(compass)
 
-        imu_model_needed_keys = [
-            'accel_b',
-            'accel_std',
-            'accel_tau',
-            'gyro_b',
-            'gyro_std',
-            'gyro_tau',
-        ]
-
+    def parse_compass_keys(self, compass):
         non_inertial_possible_keys = [
-            'gps_b',
-            'gps_std',
             'compass_b',
             'compass_std',
         ]
-        
-        for k in imu_model.keys():
-            if not (k in imu_model_needed_keys):
-                raise ValueError(f"Unknown key ({k}), given")
-            
-        for k in imu_model_needed_keys:
-            if not (k in imu_model.keys()):
-                raise ValueError(f"Keys {k}, should be defined")
-
-        self.gps_present = False
-        if gps != None:
-            for k in gps.keys():
-                if not (k in non_inertial_possible_keys):
-                    raise ValueError(f"Unknown key ({k}), given")
-            b = gps.get('gps_b')
-            if isinstance(b, np.ndarray):
-                self._gps_b = b * np.array([M2R,M2R,1])
-            else:
-                self._gps_b = np.zeros(3)
-            b = gps.get('gps_std')
-            if isinstance(b, np.ndarray):
-                self._gps_std = b * np.array([M2R,M2R,1])
-            else:
-                self._gps_std = np.zeros(3)
-            self.gps_present = True
-        
         self.compass_present = False
         if compass != None:
             for k in compass.keys():
@@ -94,9 +67,63 @@ class IMU:
                 self._compass_std = 0
             self.compass_present = True
 
-            
+
+    def parse_gps_keys(self, gps):
+        non_inertial_possible_keys = [
+            'gps_b',
+            'gps_std',
+        ]
+
+        self.gps_present = False
+        if gps != None:
+            for k in gps.keys():
+                if not (k in non_inertial_possible_keys):
+                    raise ValueError(f"Unknown key ({k}), given")
+            b = gps.get('gps_b')
+            if isinstance(b, np.ndarray):
+                self._gps_b = b * np.array([M2R,M2R,1])
+            else:
+                self._gps_b = np.zeros(3)
+            b = gps.get('gps_std')
+            if isinstance(b, np.ndarray):
+                self._gps_std = b * np.array([M2R,M2R,1])
+            else:
+                self._gps_std = np.zeros(3)
+            self.gps_present = True
 
         
+
+    def parse_acc_gyr_keys(self, imu_model):
+        imu_model_needed_keys = [
+            'accel_b',
+            'accel_std',
+            'accel_tau',
+            'gyro_b',
+            'gyro_std',
+            'gyro_tau',
+        ]
+
+        imu_real_data_keys = [
+            'Acc',
+            'Gyr'
+        ]
+
+        for k in imu_model.keys():
+            if (k in imu_real_data_keys):
+                print('using real data')
+                self.use_real_data[0] = True
+                self.Acc = imu_model['Acc']
+                self.Gyr = imu_model['Gyr']
+                return
+
+        for k in imu_model.keys():
+            if not (k in imu_model_needed_keys):
+                raise ValueError(f"Unknown key ({k}), given")
+            
+        for k in imu_model_needed_keys:
+            if not (k in imu_model.keys()):
+                raise ValueError(f"Keys {k}, should be defined")
+
         self._acc_bias = imu_model['accel_b']
         self._acc_std = imu_model['accel_std']
         self._acc_tau = imu_model['accel_tau']
@@ -117,23 +144,26 @@ class IMU:
     def set_freq(self, freq:np.array) -> None:
         self.dt = 1/freq[0]
 
-        sc :np.ndarray = (self._acc_tau == 0)
-        if True in sc:
-            raise ValueError(f"accel tau index:{np.where(sc == True)} should not be zero")
+        if not self.use_real_data[0]:
+            sc :np.ndarray = (self._acc_tau == 0)
+            if True in sc:
+                raise ValueError(f"accel tau index:{np.where(sc == True)} should not be zero")
 
-        sc :np.ndarray = (self._gyro_tau == 0)
-        if True in sc:
-            raise ValueError(f"gyro tau index:{np.where(sc == True)} should not be zero")
+            sc :np.ndarray = (self._gyro_tau == 0)
+            if True in sc:
+                raise ValueError(f"gyro tau index:{np.where(sc == True)} should not be zero")
 
 
-        self._acc_t1 = (1 - self.dt/self._acc_tau)
-        self._acc_t2 = self._acc_std * np.sqrt(2*self.dt/self._acc_tau)
+            self._acc_t1 = (1 - self.dt/self._acc_tau)
+            self._acc_t2 = self._acc_std * np.sqrt(2*self.dt/self._acc_tau)
 
-        self._gyro_t1 = (1 - self.dt/self._gyro_tau)
-        self._gyro_t2 = self._gyro_std * np.sqrt(2*self.dt/self._gyro_tau)
+            self._gyro_t1 = (1 - self.dt/self._gyro_tau)
+            self._gyro_t2 = self._gyro_std * np.sqrt(2*self.dt/self._gyro_tau)
 
-        self.gps_freq = freq[1]
-        self.compass_freq = freq[2]
+        if not self.use_real_data[1]:
+            self.gps_freq = freq[1]
+        if not self.use_real_data[2]:
+            self.compass_freq = freq[2]
 
     
     def get_gyro_err(self) -> np.ndarray:
