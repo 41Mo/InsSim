@@ -1,9 +1,7 @@
 #!/bin/python3
-#%%
 import pandas as pd
 from numpy import linalg, array, matrix, newaxis, squeeze, eye, zeros, mean, block, shape
 import argparse
-#%%
 parser = argparse.ArgumentParser(description='Estiate acc errors.')
 parser.add_argument('sd', metavar='srcdir', type=str,
                     help='Dir with acc data')
@@ -11,7 +9,6 @@ parser.add_argument('--out', dest="resfile", help="Store calib result in file. C
 parser.add_argument('--est_file', dest="ef", help="Use already estimated data file to check reult", default="")
 parser.add_argument('--iter_n', dest="i_n", help="Num of approximation iter.", default=3, type=int)
 args = parser.parse_args()
-#%%
 def read_logs(path='logs'):
     path+='/'
     dataframes_list = []
@@ -49,7 +46,6 @@ if args.ef:
     dr = array([
         est_vec[0],est_vec[1],est_vec[2]
     ])
-#%%
 for df in dfs:
 
     a = df.loc[:, ["Acc_X", "Acc_Y", "Acc_Z"]].to_numpy()
@@ -66,7 +62,6 @@ for df in dfs:
     acc.append(
         mean(result,axis=0)
     )
-#%%
 g = 9.80665
 ai = eye(3,3)
 aii0 = zeros(shape=(3,3))
@@ -118,7 +113,6 @@ mu5 = mu4.copy()
 mu5[1,2] = 1; mu5[2,1] = -1;
 hi5=hi4.copy()
 
-#%%
 H = array((
     block([
         ai, aii0, aij0,mu0,hi0
@@ -172,7 +166,6 @@ C = array((
 ))
 G=matrix([[0],[0],[g]]) 
 
-#%%
 Z = []
 for i in range(6):
     Z.append(acc[i][:,newaxis] - C[i]@G)
