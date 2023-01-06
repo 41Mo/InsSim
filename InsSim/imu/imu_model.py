@@ -60,7 +60,7 @@ class IMU:
         self._prev_nz_v = np.zeros((2,3))
 
     def get_accel_err(self) -> np.ndarray:
-        self._prev_nz_v[0] = self._acc_t1 * self._prev_nz_v[0] + self._acc_t2*np.random.randn(3)
+        self._prev_nz_v[0] = self._acc_t1 * self._prev_nz_v[0] + self._acc_t2*np.random.standard_normal(3)
         return self._acc_bias+self._prev_nz_v[0]
     
     def set_freq(self, freq) -> None:
@@ -83,5 +83,5 @@ class IMU:
 
     
     def get_gyro_err(self) -> np.ndarray:
-        self._prev_nz_v[1] = self._gyro_t1 * self._prev_nz_v[1] + self._gyro_t2*np.random.randn(3)
-        return self._gyro_bias+self._prev_nz_v[0]
+        self._prev_nz_v[1] = self._gyro_t1 * self._prev_nz_v[1] + self._gyro_t2*np.random.standard_normal(3)
+        return self._gyro_bias+self._prev_nz_v[1]
