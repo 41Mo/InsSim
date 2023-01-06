@@ -22,7 +22,7 @@ class INS_SIM:
                 [att, vel, pos]
                 att: [roll, pitch, hdg] - deg, deg, deg
                 vel: [Ve, Vn, Vu] - m/s, m/s, m/s
-                pos: [lat, lng, alt] - rad, rad, m
+                pos: [lat, lng, alt] - deg, deg, m
         '''
 
         if imu == None:
