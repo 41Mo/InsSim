@@ -98,10 +98,10 @@ class ShulerCLS(INS_ALGO):
 
             P[i] = P[i-1] + p_dot*dt - self.pos_signal(delta_pos)*dt
 
-            c0 = np.sqrt(np.power(dcm_b_e[2,0], 2.0) + np.power(dcm_b_e[2,2], 2.0));
-            A[i,1] = np.arctan(dcm_b_e[2,1] / c0);
-            A[i,0] = -np.arctan2(dcm_b_e[2,0], dcm_b_e[2,2]);
-            A[i,2] = np.arctan2(dcm_b_e[0,1], dcm_b_e[1,1]);
+            c0 = np.sqrt(np.power(dcm_b_e[2,0], 2.0) + np.power(dcm_b_e[2,2], 2.0))
+            A[i,1] = np.arctan(dcm_b_e[2,1] / c0)
+            A[i,0] = -np.arctan2(dcm_b_e[2,0], dcm_b_e[2,2])
+            A[i,2] = wrap_2PI(np.arctan2(dcm_b_e[0,1], dcm_b_e[1,1]))
         self.results = result
     
     def vel_signal(self, delta_pos, g, cp):
