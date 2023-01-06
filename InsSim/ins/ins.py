@@ -42,31 +42,57 @@ class INS_SIM:
         return np.array(self.output[key])
     
     def generate_imu_values(self, time_sec):
-        if not self.imu == None:
-            self.imu.set_freq(self.fs[0])
-            nloops = time_sec*self.fs[0]
-            accel_err = np.zeros([nloops, 3])
-            gyro_err = np.zeros([nloops, 3])
-            g_e = np.zeros((3,1))
-            w_e = np.zeros((3,1))
-            for i in range(nloops):
-                g_e[2],sl,cl,U = geo_param(self.motion_data[2])[2:6]
-                w_e[1] = U*cl; w_e[2] = U*sl
-                a_body = (self.dcm_b_e @ g_e).T.A1
-                g_body = (self.dcm_b_e @ w_e).T.A1
-                accel_err[i] = self.imu.get_accel_err() + a_body
-                gyro_err[i] = self.imu.get_gyro_err() + g_body
+        if self.imu == None:
+            raise ValueError
+        self.imu.set_freq(self.fs)
+        nloops = time_sec*self.fs[0]
+        accel_err = np.zeros([nloops, 3])
+        gyro_err = np.zeros([nloops, 3])
+        g_e = np.zeros((3,1))
+        w_e = np.zeros((3,1))
 
-            self.output["ACC"] = accel_err
-            self.output["GYR"] = gyro_err
+        for i in range(nloops):
+            g_e[2],sl,cl,U = geo_param(self.motion_data[2])[2:6]
+            w_e[1] = U*cl; w_e[2] = U*sl
+            a_body = (self.dcm_b_e @ g_e).T.A1
+            g_body = (self.dcm_b_e @ w_e).T.A1
+            accel_err[i] = self.imu.get_accel_err() + a_body
+            gyro_err[i] = self.imu.get_gyro_err() + g_body
+
+        self.output["ACC"] = accel_err
+        self.output["GYR"] = gyro_err
+    
+    def generate_gps_values(self, time_sec):
+        if not self.imu.gps_present:
+            return
+        nloops = time_sec*self.fs[0]
+        gps_pos = np.zeros([nloops,3])
+        for i in range(nloops):
+            gps_pos[i] = self.imu.get_gps_err() + self.motion_data[2]
+        
+        self.output["GPS_POS"] = gps_pos
+
+    def generate_compass_values(self, time_sec):
+        if not self.imu.compass_present:
+            return
+        nloops = time_sec*self.fs[0]
+        compass = np.zeros(nloops)
+        for i in range(nloops):
+            compass[i] = self.imu.get_compass_err() + self.att[2]
+        
+        self.output["COMP"] = compass
 
     def run(self, time_sec):
         self.generate_imu_values(time_sec)
+        self.generate_gps_values(time_sec)
+        self.generate_compass_values(time_sec)
         if self.alg_arr == None:
             return
         for alg in self.alg_arr:
             alg.a = self.output["ACC"]
             alg.g = self.output["GYR"]
+            alg.comp = self.output.get('COMP')
+            alg.gps_pos = self.output.get('GPS_POS')
             alg.att0 = self.motion_data[0]
             alg.vel0 = self.motion_data[1]
             alg.pos0 = self.motion_data[2]
