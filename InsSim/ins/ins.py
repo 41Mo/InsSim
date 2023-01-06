@@ -35,8 +35,15 @@ class INS_SIM:
         self.motion_data = motion_data
         self.dcm_b_e = DCM()
         self.att = motion_data[0]*D2R
+        self.vel = motion_data[1]
+        self.pos = motion_data[2]*np.array([D2R, D2R, 1])
         self.dcm_b_e.from_euler(self.att[0], self.att[1], self.att[2])
         self.dcm_b_e = self.dcm_b_e.matrix.T
+        self.ini_cond = {
+            "ATT":self.att,
+            "VEL":self.vel,
+            "POS":self.pos
+        }
 
     def result(self, key):
         return np.array(self.output[key])
@@ -52,7 +59,7 @@ class INS_SIM:
         w_e = np.zeros((3,1))
 
         for i in range(nloops):
-            g_e[2],sl,cl,U = geo_param(self.motion_data[2])[2:6]
+            g_e[2],sl,cl,U = geo_param(self.pos)[2:6]
             w_e[1] = U*cl; w_e[2] = U*sl
             a_body = (self.dcm_b_e @ g_e).T.A1
             g_body = (self.dcm_b_e @ w_e).T.A1
@@ -68,7 +75,7 @@ class INS_SIM:
         nloops = time_sec*self.fs[0]
         gps_pos = np.zeros([nloops,3])
         for i in range(nloops):
-            gps_pos[i] = self.imu.get_gps_err() + self.motion_data[2]
+            gps_pos[i] = self.imu.get_gps_err() + self.pos
         
         self.output["GPS_POS"] = gps_pos
 
@@ -93,10 +100,11 @@ class INS_SIM:
             alg.g = self.output["GYR"]
             alg.comp = self.output.get('COMP')
             alg.gps_pos = self.output.get('GPS_POS')
-            alg.att0 = self.motion_data[0]
-            alg.vel0 = self.motion_data[1]
-            alg.pos0 = self.motion_data[2]
+            alg.att0 = self.att
+            alg.vel0 = self.vel
+            alg.pos0 = self.pos
             alg.run(time_sec)
-            keys = ["ATT", "SPD", "POS"]
+            keys = ["ATT", "VEL", "POS"]
             for k, i in zip(keys, range(len(keys))):
                 self.output[alg.alg_name+"_"+k] = alg.get_results()[:,i]
+                self.output[alg.alg_name+"_"+k+"_ERR"] = alg.get_results()[:,i]-self.ini_cond[k]

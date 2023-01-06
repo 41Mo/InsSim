@@ -57,6 +57,7 @@ class IMU:
             if not (k in imu_model.keys()):
                 raise ValueError(f"Keys {k}, should be defined")
 
+        self.gps_present = False
         if gps != None:
             for k in gps.keys():
                 if not (k in non_inertial_possible_keys):
@@ -73,6 +74,7 @@ class IMU:
                 self._gps_std = np.zeros(3)
             self.gps_present = True
         
+        self.compass_present = False
         if compass != None:
             for k in compass.keys():
                 if not (k in non_inertial_possible_keys):

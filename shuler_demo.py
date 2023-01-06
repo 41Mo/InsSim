@@ -58,7 +58,7 @@ for i in range(len(labels)):
 fig, axs = plt.subplots(3,1)
 labels = ['Ve', 'Vn', "Vu"]
 for i in range(len(labels)):
-    axs[i].plot(time_axis, ins.result("SH_SPD")[:,i], label=labels[i])
+    axs[i].plot(time_axis, ins.result("SH_VEL")[:,i], label=labels[i])
     try:
         axs[i].plot(vel[i], label="eq_"+labels[i])
         pass
