@@ -48,7 +48,7 @@ class Shuler(INS_ALGO):
                 result[i] = self.att0, self.vel0, self.pos0
                 continue
 
-            rN,rE,G,sp,cp,U = geo_param(self.pos0)
+            rN,rE,G,sp,cp,U = geo_param(P[i-1])
             rN_eff = rN+P[i-1,2]
             rE_eff = rE+P[i-1,2]
             g_n = np.array([0,0,G])
