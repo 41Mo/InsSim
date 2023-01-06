@@ -29,6 +29,9 @@ class IMU:
         gps:
             gps_b: offset, m
             gps_std: stadtard deviation, m
+        compass:
+            compass_b: offset, deg
+            compass_std: standard deviation, deg
         '''
         if not isinstance(imu_model, dict):
             raise(TypeError)
